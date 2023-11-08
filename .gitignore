@@ -1,0 +1,10 @@
+# dotnet core files
+bin/
+obj/
+
+# private resource files created by the app
+private_resource_*
+
+# winmerge/kdiff backup files
+*.bak
+*.orig
