@@ -94,7 +94,7 @@ public static class UserAccessTokenService
       _ = redirectListener.Run();
 
       Console.WriteLine("Launching a firefox window and waiting up to 5 minutes for the user give app permission in facebook...");
-      using (var p = System.Diagnostics.Process.Start(@"C:\Program Files\Mozilla Firefox\firefox.exe", loginUrl)) { }
+      using (var p = System.Diagnostics.Process.Start(Constants.BrowserExePath, string.Format(Constants.BrowserExeArgs, loginUrl))) { }
       Task.WaitAny(Task.Delay(TimeSpan.FromMinutes(5)), userAccessToken.Task);
       if (!userAccessToken.Task.IsCompleted)
       {
