@@ -25,9 +25,13 @@ You need to create a `private_resource_constants.json` file in the app's working
       "FacebookPageName": "Your Page Name", // See https://www.facebook.com/business/help/1199464373557428?id=418112142508425
       "FacebookListenerCertName": "whatever-cert", // just pick something
       "FacebookListenerCertPassword": "", // empty means no password
+      "BrowserExePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", // or whatever browser you want
+      "BrowserExeArgs": "{0}", // {0} will be replaced with a url
     }
 
-This project assumes FireFox is installed at `C:\Program Files\Mozilla Firefox\firefox.exe` and uses it to request permission to use your facebook account.
+On initial launch, this project uses a browser to request permission to use your facebook account.
+
+This project uses Windows-platform-specific \*.pfx cert creation code... but that could be replaced if I ever need it to run on Linux.
 
 Licensing
 ---------
