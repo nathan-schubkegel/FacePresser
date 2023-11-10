@@ -3,7 +3,7 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-public class PagePost
+public class FacebookPagePost
 {
   public string Id;
   public string FromId; // who posted it
@@ -12,23 +12,23 @@ public class PagePost
   public string FullPicture;
 }
 
-public class PageAccount
+public class FacebookPageAccount
 {
   public string PageAccessToken;
   public string PageName;
   public string PageId;
 }
 
-public class PageService
+public class FacebookPageService
 {
   private string _userAccessToken;
   
-  public PageService(string userAccessToken)
+  public FacebookPageService(string userAccessToken)
   {
     _userAccessToken = userAccessToken;
   }
 
-  public async Task<List<PageAccount>> GetPageAccounts(string userId)
+  public async Task<List<FacebookPageAccount>> GetPageAccounts(string userId)
   {
     Console.WriteLine("Asking facebook for pages the user is admin of");
     using (var client = new HttpClient())
@@ -41,13 +41,13 @@ public class PageService
       {
         var jsonRes = JsonConvert.DeserializeObject<dynamic>(result);
         
-        var results = new List<PageAccount>();
+        var results = new List<FacebookPageAccount>();
         foreach (var post in jsonRes["data"])
         {
           string accessToken = post["access_token"].ToString();
           string name = post["name"].ToString();
           string id = post["id"].ToString();
-          results.Add( new PageAccount { PageAccessToken = accessToken, PageId = id, PageName = name } );
+          results.Add( new FacebookPageAccount { PageAccessToken = accessToken, PageId = id, PageName = name } );
         }
         return results;
       }
@@ -58,7 +58,7 @@ public class PageService
     }
   }
 
-  public async Task<List<PagePost>> GetMostRecentPostsOnPage(string pageId, string pageAccessToken)
+  public async Task<List<FacebookPagePost>> GetMostRecentPostsOnPage(string pageId, string pageAccessToken)
   {
     Console.WriteLine("Asking facebook for most recent posts on a page");
     using (var client = new HttpClient())
@@ -72,14 +72,14 @@ public class PageService
       {
         var jsonRes = JsonConvert.DeserializeObject<dynamic>(result);
 
-        var results = new List<PagePost>();
+        var results = new List<FacebookPagePost>();
         foreach (var post in jsonRes["data"])
         {
           if ((bool?)post["is_expired"] == true || (bool?)post["is_hidden"] == true) continue;
           
           if ((bool?)post["is_published"] == false) continue;
           
-          results.Add(new PagePost
+          results.Add(new FacebookPagePost
           { 
             Id = post["id"]?.ToString(),
             FromId = post["from"]["id"]?.ToString(),

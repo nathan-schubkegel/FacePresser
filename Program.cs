@@ -3,10 +3,10 @@ using Newtonsoft.Json.Linq;
 
 // get user access token
 var userAccessToken = UserAccessTokenService.GetUserAccessToken();
-var pageService = new PageService(userAccessToken);
+var pageService = new FacebookPageService(userAccessToken);
 
 // find the pages that can be watched 
-List<PageAccount> pageAccounts;
+List<FacebookPageAccount> pageAccounts;
 try
 {
   pageAccounts = await pageService.GetPageAccounts("me");
