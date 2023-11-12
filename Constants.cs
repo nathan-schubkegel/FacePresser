@@ -19,6 +19,9 @@ public class Constants
     FacebookListenerCertPassword = GetConstant("FacebookListenerCertPassword");
     BrowserExePath = GetConstant("BrowserExePath");
     BrowserExeArgs = GetConstant("BrowserExeArgs");
+    WordPressAuthUsername = GetConstant("WordPressAuthUsername");
+    WordPressAuthPassword = GetConstant("WordPressAuthPassword");
+    WordPressSite = GetConstant("WordPressSite");
   }
 
   public static readonly string ConstantsFileName = "private_resource_constants.json";
@@ -32,4 +35,7 @@ public class Constants
   public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.txt";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;
+  public static readonly string WordPressAuthUsername;
+  public static readonly string WordPressAuthPassword;
+  public static readonly string WordPressSite;
 }

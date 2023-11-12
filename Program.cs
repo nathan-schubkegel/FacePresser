@@ -38,3 +38,5 @@ foreach (var post in posts)
 }
 
 Console.WriteLine("TODO: now... what to do with this data? :)");
+
+await WordPressService.GetPageContent("291");

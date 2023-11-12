@@ -27,6 +27,9 @@ You need to create a `private_resource_constants.json` file in the app's working
       "FacebookListenerCertPassword": "", // empty means no password
       "BrowserExePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", // or whatever browser you want
       "BrowserExeArgs": "{0}", // {0} will be replaced with a url
+      "WordPressAuthUsername": "JoeCool", // your wordpress account user name
+      "WordPressAuthPassword": "afev aJbY vrK4 S3Yn fF3R 6cLE", // application password; must be set up in wordpress
+      "WordPressSite": "yourSite.org" // everything before https://
     }
 
 On initial launch, this project uses a browser to request permission to use your facebook account.
