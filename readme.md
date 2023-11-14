@@ -29,7 +29,13 @@ You need to create a `private_resource_constants.json` file in the app's working
       "BrowserExeArgs": "{0}", // {0} will be replaced with a url
       "WordPressAuthUsername": "JoeCool", // your wordpress account user name
       "WordPressAuthPassword": "afev aJbY vrK4 S3Yn fF3R 6cLE", // application password; must be set up in wordpress
-      "WordPressSite": "yourSite.org" // everything before https://
+      "WordPressSite": "yourSite.org", // everything before https://
+      "WordPressPageId": "43", // the id field from /wp-json/wp/v2/pages or the "post" argument when you edit the page, i.e. /wp-admin/post.php?post=43&action=edit
+      "WordPressPageHeadingTextWhereReplacementStarts": "Latest Status", // your wordpress page must have a "Heading" block containing this text;
+                                                                         // all content from this block down will be replaced by this program
+
+      "WordPressPageFooter": "This is <b>HTML text</b> that will show up after the scraped post message content, in a paragraph block.",
+      "WordPressPageImageUrl": "url/to/some/image_on_your_site.png", // if populated, this image will be included after the footer
     }
 
 On initial launch, this project uses a browser to request permission to use your facebook account.

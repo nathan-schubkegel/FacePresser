@@ -22,6 +22,10 @@ public class Constants
     WordPressAuthUsername = GetConstant("WordPressAuthUsername");
     WordPressAuthPassword = GetConstant("WordPressAuthPassword");
     WordPressSite = GetConstant("WordPressSite");
+    WordPressPageId = GetConstant("WordPressPageId");
+    WordPressPageHeadingTextWhereReplacementStarts = GetConstant("WordPressPageHeadingTextWhereReplacementStarts");
+    WordPressPageFooter = GetConstant("WordPressPageFooter");
+    WordPressPageImageUrl = GetConstant("WordPressPageImageUrl");
   }
 
   public static readonly string ConstantsFileName = "private_resource_constants.json";
@@ -38,4 +42,8 @@ public class Constants
   public static readonly string WordPressAuthUsername;
   public static readonly string WordPressAuthPassword;
   public static readonly string WordPressSite;
+  public static readonly string WordPressPageId;
+  public static readonly string WordPressPageHeadingTextWhereReplacementStarts;
+  public static readonly string WordPressPageFooter;
+  public static readonly string WordPressPageImageUrl;
 }
