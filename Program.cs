@@ -11,41 +11,7 @@ while (true)
   Console.WriteLine("Loop #" + ++loopNumber);
   try
   {
-    // get user access token
-    var userAccessToken = FacebookUserAccessTokenService.GetUserAccessToken();
-    var pageService = new FacebookPageService(userAccessToken);
-
-    // find the pages that can be watched 
-    List<FacebookPageAccount> pageAccounts;
-    try
-    {
-      pageAccounts = await pageService.GetPageAccounts("me");
-    }
-    catch
-    {
-      FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
-      throw;
-    }
-
-    Console.WriteLine("Page Accounts:" + (pageAccounts.Count == 0 ? " (none)" : ""));
-    foreach (var account in pageAccounts)
-    {
-      Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
-    }
-    var pageAccount = pageAccounts.FirstOrDefault(a => a.PageName == Constants.FacebookPageName);
-    if (pageAccount == null)
-    {
-      throw new Exception($"FacebookPageName=\"{Constants.FacebookPageName}\" was specified in " + 
-        $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name.");
-    }
-
-    // get the most recent posts
-    var posts = await pageService.GetMostRecentPostsOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
-    Console.WriteLine("Page Posts:" + (posts.Count == 0 ? " (none)" : ""));
-    foreach (var post in posts)
-    {
-      Console.WriteLine(JsonConvert.SerializeObject(post, Formatting.Indented));
-    }
+    var (facebookMessage, facebookPictureUrl) = await GetLatestFacebookPostAsync();
 
     var pageContent = await WordPressService.GetPageContent();
     Console.WriteLine("Page Content:" + (pageContent.Count == 0 ? " (none)" : ""));
@@ -84,7 +50,7 @@ while (true)
     });
 
     // add the most recent post
-    foreach (var line in posts[0].Message.GetLines().Select(x => x.Trim()).Where(x => x != ""))
+    foreach (var line in facebookMessage.GetLines().Select(x => x.Trim()).Where(x => x != ""))
     {
       pageContent.AddRange(new[]{
         @"<!-- wp:paragraph -->",
@@ -101,17 +67,17 @@ while (true)
       @"<!-- /wp:paragraph -->",
       @""});
 
-    if (!string.IsNullOrEmpty(posts[0].FullPicture))
+    if (!string.IsNullOrEmpty(facebookPictureUrl))
     {
       // only download if it's different than the last picture we downloaded
-      if (lastFacebookPictureUrl != posts[0].FullPicture)
+      if (lastFacebookPictureUrl != facebookPictureUrl)
       {
         // download new image from facebook
-        Console.WriteLine("Asking facebook for the picture " + posts[0].FullPicture);
+        Console.WriteLine("Asking facebook for the picture " + facebookPictureUrl);
         using (var pictureStream = new MemoryStream())
         using (var client = new HttpClient())
         {
-          HttpResponseMessage response = await client.GetAsync(posts[0].FullPicture);
+          HttpResponseMessage response = await client.GetAsync(facebookPictureUrl);
           using var responseStream = await response.Content.ReadAsStreamAsync();
           responseStream.CopyTo(pictureStream);
           pictureStream.Position = 0;
@@ -140,7 +106,7 @@ while (true)
           }
         }
 
-        lastFacebookPictureUrl = posts[0].FullPicture;
+        lastFacebookPictureUrl = facebookPictureUrl;
       }
     }
 
@@ -150,6 +116,7 @@ while (true)
     foreach (var line in pageContent) Console.WriteLine(line);
 
     // TODO: post these changes to wordpress
+    //await WordPressService.SetPageContent(pageContent);
   }
   catch (Exception ex)
   {
@@ -161,4 +128,44 @@ while (true)
   Console.WriteLine(DateTime.Now.ToString());
   Console.WriteLine($"Sleeping {minutes} minutes {seconds} seconds until next attempt...");
   Thread.Sleep(1000 * (60 * minutes + seconds));
+}
+
+async Task<(string facebookMessage, string facebookPictureUrl)> GetLatestFacebookPostAsync()
+{
+  // get user access token
+  var userAccessToken = FacebookUserAccessTokenService.GetUserAccessToken();
+  var pageService = new FacebookPageService(userAccessToken);
+
+  // find the pages that can be watched 
+  List<FacebookPageAccount> pageAccounts;
+  try
+  {
+    pageAccounts = await pageService.GetPageAccounts("me");
+  }
+  catch
+  {
+    FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
+    throw;
+  }
+
+  Console.WriteLine("Page Accounts:" + (pageAccounts.Count == 0 ? " (none)" : ""));
+  foreach (var account in pageAccounts)
+  {
+    Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
+  }
+  var pageAccount = pageAccounts.FirstOrDefault(a => a.PageName == Constants.FacebookPageName);
+  if (pageAccount == null)
+  {
+    throw new Exception($"FacebookPageName=\"{Constants.FacebookPageName}\" was specified in " + 
+      $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name.");
+  }
+
+  // get the most recent posts
+  var posts = await pageService.GetMostRecentPostsOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
+  Console.WriteLine("Page Posts:" + (posts.Count == 0 ? " (none)" : ""));
+  foreach (var post in posts)
+  {
+    Console.WriteLine(JsonConvert.SerializeObject(post, Formatting.Indented));
+  }
+  return (posts[0].Message, posts[0].FullPicture);
 }
