@@ -1,7 +1,7 @@
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
-public static class UserAccessTokenService
+public static class FacebookUserAccessTokenService
 {
   private class CachedToken
   {

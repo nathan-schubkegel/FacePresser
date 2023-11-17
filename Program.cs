@@ -12,7 +12,7 @@ while (true)
   try
   {
     // get user access token
-    var userAccessToken = UserAccessTokenService.GetUserAccessToken();
+    var userAccessToken = FacebookUserAccessTokenService.GetUserAccessToken();
     var pageService = new FacebookPageService(userAccessToken);
 
     // find the pages that can be watched 
@@ -23,7 +23,7 @@ while (true)
     }
     catch
     {
-      UserAccessTokenService.DeleteCachedUserAccessToken();
+      FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
       throw;
     }
 
