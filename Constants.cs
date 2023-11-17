@@ -36,7 +36,7 @@ public class Constants
   public static readonly string FacebookListenerCertPassword;
   public static readonly string FacebookListenerCertFileName = "private_resource_cert.pfx";
   public static readonly int    FacebookLoginRedirectListenerPort = 11337;
-  public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.txt";
+  public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.json";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;
   public static readonly string WordPressAuthUsername;

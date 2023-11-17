@@ -39,7 +39,7 @@ public class FacebookPageService
       Console.WriteLine("facebook's response: " + result);
       if (response.IsSuccessStatusCode)
       {
-        var jsonRes = JsonConvert.DeserializeObject<dynamic>(result);
+        var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
         
         var results = new List<FacebookPageAccount>();
         foreach (var post in jsonRes["data"])
@@ -70,7 +70,7 @@ public class FacebookPageService
       Console.WriteLine("facebook's response: " + result);
       if (response.IsSuccessStatusCode)
       {
-        var jsonRes = JsonConvert.DeserializeObject<dynamic>(result);
+        var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
 
         var results = new List<FacebookPagePost>();
         foreach (var post in jsonRes["data"])

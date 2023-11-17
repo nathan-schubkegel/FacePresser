@@ -1,13 +1,39 @@
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 public static class UserAccessTokenService
 {
+  private class CachedToken
+  {
+    public string FacebookAppId;
+    public string UserAccessToken;
+  }
+  
   public static string GetUserAccessToken()
   {
     if (File.Exists(Constants.FacebookUserAccessTokenFileName))
     {
       Console.WriteLine("Loading user access token from file " + Constants.FacebookUserAccessTokenFileName);
-      return File.ReadAllText(Constants.FacebookUserAccessTokenFileName);
+      try
+      {
+        var text = File.ReadAllText(Constants.FacebookUserAccessTokenFileName);
+        var json = JsonConvert.DeserializeObject<CachedToken>(text, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+        if (json.FacebookAppId == Constants.FacebookAppId)
+        {
+          return json.UserAccessToken;
+        }
+        else
+        {
+          Console.WriteLine("FacebookAppId has changed since user access token was created... abandoning it.");
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine("Unexpected " + ex.GetType().Name + " while inspecting user access token from file... abandoning it.");
+      }
+      
+      // if we made it this far, it must have been bad
+      File.Delete(Constants.FacebookUserAccessTokenFileName);
     }
     
     var loginNookie = Guid.NewGuid().ToString();
@@ -56,11 +82,13 @@ public static class UserAccessTokenService
                 //   "token_type": {type},
                 //   "expires_in":  {seconds-til-expiration}
                 // }
-                var jsonRes = JObject.Parse(result);
+                var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
                 var token = (string)jsonRes["access_token"];
                 if (token != null)
                 {
-                  File.WriteAllText(Constants.FacebookUserAccessTokenFileName, token);
+                  var o = new CachedToken { FacebookAppId = Constants.FacebookAppId, UserAccessToken = token };
+                  var t = JsonConvert.SerializeObject(o, Formatting.Indented);
+                  File.WriteAllText(Constants.FacebookUserAccessTokenFileName, t);
                   userAccessToken.SetResult(token);
                 }
                 else

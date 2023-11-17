@@ -28,7 +28,7 @@ public static class WordPressService
       Console.WriteLine("wordpress's response: " + result);
       if (response.IsSuccessStatusCode)
       {
-        var jsonRes = JsonConvert.DeserializeObject<dynamic>(result);
+        var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
         var content = (string)jsonRes["content"]["raw"];
         return content.GetLines();
       }
