@@ -35,9 +35,11 @@ public static class FacebookUserAccessTokenService
       // if we made it this far, it must have been bad
       File.Delete(Constants.FacebookUserAccessTokenFileName);
     }
+
+    using var redirectListener = new FacebookLoginRedirectListener();
     
     var loginNookie = Guid.NewGuid().ToString();
-    var loginRedirect = $"https://localhost:{Constants.FacebookLoginRedirectListenerPort}/login_success";
+    var loginRedirect = $"https://localhost:{redirectListener.ListeningPort}/login_success";
     var loginUrl = $"https://www.facebook.com/v18.0/dialog/oauth?" + 
       $"client_id={Constants.FacebookAppId}&" +
       $"redirect_uri={loginRedirect}&" +
@@ -115,7 +117,7 @@ public static class FacebookUserAccessTokenService
         }
       }
     };
-    using var redirectListener = new FacebookLoginRedirectListener();
+
     redirectListener.OnHttpRequest += d;
     try
     {

@@ -23,8 +23,9 @@ You need to create a `private_resource_constants.json` file in the app's working
       "FacebookAppId": "12345", // log in to https://developers.facebook.com and create a business app, then look for this ID on your app dashboard
       "FacebookAppSecret": "6789", // same
       "FacebookPageName": "Your Page Name", // See https://www.facebook.com/business/help/1199464373557428?id=418112142508425
-      "FacebookListenerCertName": "whatever-cert", // just pick something
-      "FacebookListenerCertPassword": "", // empty means no password
+      "FacebookLoginRedirectCertFilePath": "", // provide your own *.pfx file, or empty string to auto-generate a self-signed cert
+      "FacebookLoginRedirectCertPassword": "", // empty means no password
+      "FacebookLoginRedirectListeningPort": 0, // 0 means a random port will be picked, else pick one
       "BrowserExePath": "C:\\Program Files\\Mozilla Firefox\\firefox.exe", // or whatever browser you want
       "BrowserExeArgs": "{0}", // {0} will be replaced with a url
       "WordPressAuthUsername": "JoeCool", // your wordpress account user name

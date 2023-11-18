@@ -8,6 +8,9 @@ long loopNumber = 0;
 
 while (true)
 {
+  Console.WriteLine("");
+  Console.WriteLine("");
+  Console.WriteLine("");
   Console.WriteLine("Loop #" + ++loopNumber);
   try
   {

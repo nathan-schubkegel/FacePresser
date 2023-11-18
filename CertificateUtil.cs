@@ -28,14 +28,14 @@ public class CertificateUtil
   // https://stackoverflow.com/questions/55140360/how-to-create-a-selfsigned-certificate-with-certificaterequest-that-uses-microso
   public static void MakeCertRSA()
   {
-    if (File.Exists(Constants.FacebookListenerCertFileName))
+    if (File.Exists(Constants.FacebookLoginRedirectCertFilePath))
     {
-      Console.WriteLine("Using already-existing cert " + Constants.FacebookListenerCertFileName);
+      Console.WriteLine("Using already-existing cert " + Constants.FacebookLoginRedirectCertFilePath);
       return;
     }
-    Console.WriteLine("Creating new cert " + Constants.FacebookListenerCertFileName);
+    Console.WriteLine("Creating new cert " + Constants.FacebookLoginRedirectCertFilePath);
 
-    X500DistinguishedName distinguishedName = new X500DistinguishedName($"CN={Constants.FacebookListenerCertName}");
+    X500DistinguishedName distinguishedName = new X500DistinguishedName($"CN=face-presser-selfie-cert");
 
     if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
     {
@@ -48,13 +48,14 @@ public class CertificateUtil
 
         using (var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650))))
         {
-          File.WriteAllBytes(Constants.FacebookListenerCertFileName, certificate.Export(X509ContentType.Pkcs12, Constants.FacebookListenerCertPassword));
+          File.WriteAllBytes(Constants.FacebookLoginRedirectCertFilePath, certificate.Export(X509ContentType.Pkcs12, Constants.FacebookLoginRedirectCertPassword));
         }
       }
     }
     else // linux
     {
-      using var proc = Process.Start("dotnet", "dev-certs https --export-path " + Constants.FacebookListenerCertFileName + " --trust --password \"\"");
+      using var proc = Process.Start("dotnet", "dev-certs https --export-path " + Constants.FacebookLoginRedirectCertFilePath +
+        " --trust --password \"" + Constants.FacebookLoginRedirectCertPassword + "\"");
       proc.WaitForExit();
       if (proc.ExitCode != 0)
       {
@@ -62,7 +63,7 @@ public class CertificateUtil
       }
     }
 
-    var fullCertFilePath = Path.GetFullPath(Constants.FacebookListenerCertFileName);
+    var fullCertFilePath = Path.GetFullPath(Constants.FacebookLoginRedirectCertFilePath);
     Console.WriteLine("Hey. We just made a new self-signed cert at " + fullCertFilePath +
       " and you're going to need to add this new cert to FireFox, like" +
       " Tools > Options > Advanced > Certificates: View Certificates. Or" +

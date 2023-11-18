@@ -22,18 +22,21 @@ public class FacebookLoginRedirectListener : IDisposable
   public delegate void HttpRequestDelegate(string url, string[] parameters);
   public event HttpRequestDelegate OnHttpRequest;
 
+  public int ListeningPort { get; }
+
   public FacebookLoginRedirectListener()
   {
     // make sure cert is created
-    CertificateUtil.MakeCertRSA();    
-    
+    CertificateUtil.MakeCertRSA();
+
     // read it from file
-    _serverCert = new X509Certificate2(Constants.FacebookListenerCertFileName, Constants.FacebookListenerCertPassword, X509KeyStorageFlags.Exportable);
+    _serverCert = new X509Certificate2(Constants.FacebookLoginRedirectCertFilePath, Constants.FacebookLoginRedirectCertPassword, X509KeyStorageFlags.Exportable);
     
     // start listening
-    _listener = new TcpListener(IPAddress.Loopback, Constants.FacebookLoginRedirectListenerPort);
+    _listener = new TcpListener(IPAddress.Loopback, Constants.FacebookLoginRedirectListeningPort);
     _listener.Start();
-    Console.WriteLine("Listening on TCP port " + ((IPEndPoint)_listener.LocalEndpoint).Port);
+    ListeningPort = ((IPEndPoint)_listener.LocalEndpoint).Port;
+    Console.WriteLine("Listening on TCP port " + ListeningPort);
   }
 
   public void Dispose()

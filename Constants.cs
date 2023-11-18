@@ -15,8 +15,18 @@ public class Constants
     FacebookAppId = GetConstant("FacebookAppId");
     FacebookAppSecret = GetConstant("FacebookAppSecret");
     FacebookPageName = GetConstant("FacebookPageName");
-    FacebookListenerCertName = GetConstant("FacebookListenerCertName");
-    FacebookListenerCertPassword = GetConstant("FacebookListenerCertPassword");
+
+    FacebookLoginRedirectCertFilePath = GetConstant("FacebookLoginRedirectCertFilePath");
+    if (string.IsNullOrEmpty(FacebookLoginRedirectCertFilePath)) FacebookLoginRedirectCertFilePath = "private_resource_self_signed_cert.pfx";
+
+    FacebookLoginRedirectCertPassword = GetConstant("FacebookLoginRedirectCertPassword");
+
+    var facebookLoginRedirectListeningPortString = GetConstant("FacebookLoginRedirectListeningPort");
+    if (!int.TryParse(facebookLoginRedirectListeningPortString, out FacebookLoginRedirectListeningPort))
+    {
+      throw new Exception($"invalid non-numeric {nameof(FacebookLoginRedirectListeningPort)} in ConstantsFileName");
+    }
+
     BrowserExePath = GetConstant("BrowserExePath");
     BrowserExeArgs = GetConstant("BrowserExeArgs");
     WordPressAuthUsername = GetConstant("WordPressAuthUsername");
@@ -32,10 +42,9 @@ public class Constants
   public static readonly string FacebookAppId;
   public static readonly string FacebookAppSecret;
   public static readonly string FacebookPageName;
-  public static readonly string FacebookListenerCertName;
-  public static readonly string FacebookListenerCertPassword;
-  public static readonly string FacebookListenerCertFileName = "private_resource_cert.pfx";
-  public static readonly int    FacebookLoginRedirectListenerPort = 11337;
+  public static readonly string FacebookLoginRedirectCertFilePath;
+  public static readonly string FacebookLoginRedirectCertPassword;
+  public static readonly int    FacebookLoginRedirectListeningPort;
   public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.json";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;
