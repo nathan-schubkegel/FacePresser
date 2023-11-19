@@ -25,15 +25,26 @@ public static class WordPressService
         Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
       HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
-      Console.WriteLine("wordpress's response: " + result);
       if (response.IsSuccessStatusCode)
       {
-        var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-        var content = (string)jsonRes["content"]["raw"];
-        return content.GetLines();
+        try
+        {
+          var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var content = (string)jsonRes["content"]["raw"];
+          var lines = content.GetLines();
+          Console.WriteLine("wordpress's response (page content only):" + (lines.Count == 0 ? " (0 lines)" : ""));
+          foreach (var line in lines) Console.WriteLine(line);
+          return lines;
+        }
+        catch
+        {
+          Console.WriteLine("wordpress's response: " + result);
+          throw;
+        }
       }
       else
       {
+        Console.WriteLine("wordpress's response: " + result);
         throw new Exception($"GetPageContent({Constants.WordPressPageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }

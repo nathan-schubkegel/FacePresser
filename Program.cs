@@ -2,24 +2,80 @@
 using Newtonsoft.Json.Linq;
 using System.Web;
 
-Random rnd = new Random();
-string lastFacebookPictureUrl = null;
-long loopNumber = 0;
-
-while (true)
+public static class Program
 {
-  Console.WriteLine("");
-  Console.WriteLine("");
-  Console.WriteLine("");
-  Console.WriteLine("Loop #" + ++loopNumber);
-  try
+  public static async Task Main(string[] args)
   {
-    var (facebookMessage, facebookPictureUrl) = await GetLatestFacebookPostAsync();
+    long loopNumber = 0;
+    Random rnd = new Random();
+    RepostedMessage lastRepostedMessage = null;
 
-    var pageContent = await WordPressService.GetPageContent();
-    Console.WriteLine("Page Content:" + (pageContent.Count == 0 ? " (none)" : ""));
-    foreach (var line in pageContent) Console.WriteLine(line);
+    while (true)
+    {
+      Console.WriteLine("");
+      Console.WriteLine("");
+      Console.WriteLine("");
+      Console.WriteLine("Loop #" + ++loopNumber);
+      try
+      {
+        // get wordpress page content first, to minimize facebook queries in case this step fails repeatedly
+        var pageContent = await WordPressService.GetPageContent();
 
+        lastRepostedMessage ??= RepostedMessage.Load();
+
+        var (facebookMessage, facebookPictureUrl) = await FacebookPageService.GetLatestFacebookPostAsync();
+
+        if (lastRepostedMessage.IsSameAs(facebookMessage, facebookPictureUrl))
+        {
+          Console.WriteLine("The latest facebook post has already been uploaded to the wordpress site");
+        }
+        else
+        {
+          // first determine the new page content
+          // (so if this step is going to fail, it happens before anything is uploaded!)
+          DetermineNewPageMessageContent(pageContent, facebookMessage);
+
+          // upload the new image (before uploading the content, so we can get the new image id in the content)
+          if (!string.IsNullOrEmpty(facebookPictureUrl))
+          {
+            // only download if it's different than the last picture we downloaded from facebook
+            // (again to minimize facebook queries in case they're gonna notice and limit us)
+            if (lastRepostedMessage.FacebookPictureUrl != facebookPictureUrl)
+            {
+              var imageByte = await FacebookPageService.DownloadFacebookImageAsync(facebookPictureUrl);
+              // TODO: implement this
+              //await UploadWordpressImage(facebookPictureUrl);
+            }
+            else
+            {
+              Console.WriteLine("Facebook image is same as last posted image; not re-downloading it");
+            }
+
+            DetermineNewPageImageContent(pageContent, facebookPictureUrl);
+          }
+
+          // then upload the new wordpress page content
+          await WordPressService.SetPageContent(pageContent);
+
+          // record posted info to disk, so we can avoid re-posting later
+          lastRepostedMessage.Save(facebookMessage, facebookPictureUrl);
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine("Unhandled " + ex.ToString());
+      }
+
+      int minutes = rnd.Next(1, 6);  // creates a number between 1 and 5
+      int seconds = rnd.Next(0, 60); // creates a number between 0 and 59
+      Console.WriteLine(DateTime.Now.ToString());
+      Console.WriteLine($"Sleeping {minutes} minutes {seconds} seconds until next attempt...");
+      Thread.Sleep(1000 * (60 * minutes + seconds));
+    }
+  }
+
+  private static void DetermineNewPageMessageContent(List<string> pageContent, string facebookMessage)
+  {
     var startOfContent = new List<string>
     {
       @"<!-- wp:heading -->",
@@ -44,10 +100,12 @@ while (true)
     }
     pageContent.RemoveRange(startIndex, pageContent.Count - startIndex);
 
+    pageContent.AddRange(startOfContent);
+
     pageContent.AddRange(new []
     {
       @"<!-- wp:paragraph -->",
-      @"<p class="">(Last updated " + DateTime.Now.ToString("M/d/yyyy 'at' h:mmtt") + " " + TimeZoneInfo.Local.DisplayName + @")</p>",
+      @"<p class="""">(Last updated " + HttpUtility.HtmlEncode(DateTime.Now.ToString("M/d/yyyy 'at' h:mmtt") + " " + TimeZoneInfo.Local.StandardName) + @")</p>",
       @"<!-- /wp:paragraph -->",
       @"",
     });
@@ -69,106 +127,26 @@ while (true)
       @"<p class="""">" + Constants.WordPressPageFooter + @"</p>",
       @"<!-- /wp:paragraph -->",
       @""});
+  }
 
-    if (!string.IsNullOrEmpty(facebookPictureUrl))
+  private static void DetermineNewPageImageContent(List<string> pageContent, string facebookPictureUrl)
+  {
+    bool hasFacebookImage = !string.IsNullOrEmpty(facebookPictureUrl);
+    if (hasFacebookImage)
     {
-      // only download if it's different than the last picture we downloaded
-      if (lastFacebookPictureUrl != facebookPictureUrl)
-      {
-        // download new image from facebook
-        Console.WriteLine("Asking facebook for the picture " + facebookPictureUrl);
-        using (var pictureStream = new MemoryStream())
-        using (var client = new HttpClient())
-        {
-          HttpResponseMessage response = await client.GetAsync(facebookPictureUrl);
-          using var responseStream = await response.Content.ReadAsStreamAsync();
-          responseStream.CopyTo(pictureStream);
-          pictureStream.Position = 0;
-          if (response.IsSuccessStatusCode)
-          {
-            Console.WriteLine($"facebook's response: success ({pictureStream.Length} bytes)");
-            pageContent.AddRange(new[]{
-              @"<!-- wp:image {""id"":527,""sizeSlug"":""full"",""linkDestination"":""none""} -->",
-              @"<figure class=""wp-block-image size-full""><img src=""" + Constants.WordPressPageImageUrl + @""" alt="""" class=""wp-image-527""/></figure>",
-              @"<!-- /wp:image -->",
-              @"",
-            });
-            
-            // TODO: make image file unique (at least as far as wordpress media files are concerned)
-            // and upload image to wordpress
-            // and learn its uploaded URL
-            
-            // TODO: delete other pictures this script has uploaded (THERE CAN BE ONLY ONE!)
-          }
-          else
-          {
-            using var resultReader = new StreamReader(pictureStream);
-            var result = resultReader.ReadToEnd();
-            Console.WriteLine("facebook's response: " + result);
-            throw new Exception($"Picture download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
-          }
-        }
+      // TODO: ask wordpress for the right image id
 
-        lastFacebookPictureUrl = facebookPictureUrl;
-      }
+      pageContent.AddRange(new[]{
+        @"<!-- wp:image {""id"":527,""sizeSlug"":""full"",""linkDestination"":""none""} -->",
+        @"<figure class=""wp-block-image size-full""><img src=""" + Constants.WordPressPageImageUrl + @""" alt="""" class=""wp-image-527""/></figure>",
+        @"<!-- /wp:image -->",
+        @"",
+      });
     }
 
     Console.WriteLine("/////////////////////////////////////////////////////////");
     Console.WriteLine("/////////////////// New content: ////////////////////////");
     Console.WriteLine("/////////////////////////////////////////////////////////");
     foreach (var line in pageContent) Console.WriteLine(line);
-
-    // TODO: post these changes to wordpress
-    //await WordPressService.SetPageContent(pageContent);
   }
-  catch (Exception ex)
-  {
-    Console.WriteLine("Unhandled " + ex.ToString());
-  }
-  
-  int minutes = rnd.Next(1, 6);  // creates a number between 1 and 5
-  int seconds = rnd.Next(0, 60); // creates a number between 0 and 59
-  Console.WriteLine(DateTime.Now.ToString());
-  Console.WriteLine($"Sleeping {minutes} minutes {seconds} seconds until next attempt...");
-  Thread.Sleep(1000 * (60 * minutes + seconds));
-}
-
-async Task<(string facebookMessage, string facebookPictureUrl)> GetLatestFacebookPostAsync()
-{
-  // get user access token
-  var userAccessToken = FacebookUserAccessTokenService.GetUserAccessToken();
-  var pageService = new FacebookPageService(userAccessToken);
-
-  // find the pages that can be watched 
-  List<FacebookPageAccount> pageAccounts;
-  try
-  {
-    pageAccounts = await pageService.GetPageAccounts("me");
-  }
-  catch
-  {
-    FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
-    throw;
-  }
-
-  Console.WriteLine("Page Accounts:" + (pageAccounts.Count == 0 ? " (none)" : ""));
-  foreach (var account in pageAccounts)
-  {
-    Console.WriteLine(JsonConvert.SerializeObject(account, Formatting.Indented));
-  }
-  var pageAccount = pageAccounts.FirstOrDefault(a => a.PageName == Constants.FacebookPageName);
-  if (pageAccount == null)
-  {
-    throw new Exception($"FacebookPageName=\"{Constants.FacebookPageName}\" was specified in " + 
-      $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name.");
-  }
-
-  // get the most recent posts
-  var posts = await pageService.GetMostRecentPostsOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
-  Console.WriteLine("Page Posts:" + (posts.Count == 0 ? " (none)" : ""));
-  foreach (var post in posts)
-  {
-    Console.WriteLine(JsonConvert.SerializeObject(post, Formatting.Indented));
-  }
-  return (posts[0].Message, posts[0].FullPicture);
 }
