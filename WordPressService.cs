@@ -66,7 +66,11 @@ public static class WordPressService
       {
         ["content"] = string.Join("\r\n", newContent)
       }.ToString();
-      Console.WriteLine("Body content to send: " + body);
+
+      Console.WriteLine("/////////////////////////////////////////////////////////");
+      Console.WriteLine("////////////// New WordPress page content ///////////////");
+      Console.WriteLine("/////////////////////////////////////////////////////////");
+      foreach (var line in newContent) Console.WriteLine(line);
 
       request.Content = new StringContent(body, Encoding.UTF8, "application/json");
       HttpResponseMessage response = await client.SendAsync(request);

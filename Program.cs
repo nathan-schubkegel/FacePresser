@@ -27,7 +27,7 @@ public static class Program
 
         if (lastRepostedMessage.IsSameAs(facebookMessage, facebookPictureUrl))
         {
-          Console.WriteLine("The latest facebook post has already been uploaded to the wordpress site");
+          Console.WriteLine("Done - the latest facebook post has already been uploaded to the wordpress site");
         }
         else
         {
@@ -35,29 +35,24 @@ public static class Program
           // (so if this step is going to fail, it happens before anything is uploaded!)
           DetermineNewPageMessageContent(pageContent, facebookMessage);
 
-          // upload the new image (before uploading the content, so we can get the new image id in the content)
+          // Some facebook posts have an image
           if (!string.IsNullOrEmpty(facebookPictureUrl))
           {
-            // only download if it's different than the last picture we downloaded from facebook
-            // (again to minimize facebook queries in case they're gonna notice and limit us)
-            if (lastRepostedMessage.FacebookPictureUrl != facebookPictureUrl)
-            {
-              var imageByte = await FacebookPageService.DownloadFacebookImageAsync(facebookPictureUrl);
-              // TODO: implement this
-              //await UploadWordpressImage(facebookPictureUrl);
-            }
-            else
-            {
-              Console.WriteLine("Facebook image is same as last posted image; not re-downloading it");
-            }
+            byte[] facebookImageContent = await FacebookImageCachingService.GetImageAsync(facebookPictureUrl);
 
-            DetermineNewPageImageContent(pageContent, facebookPictureUrl);
+            // TODO: turn this on
+            //var (wpImageId, wpImageUrl) = await WordPressService.EnsureImageIsUploaded(facebookImageContent);
+            string wpImageId = "527";
+            string wpImageUrl = Constants.WordPressPageImageUrl;
+
+            DetermineNewPageImageContent(pageContent, wpImageId, wpImageUrl);
           }
 
-          // then upload the new wordpress page content
+          // upload the new page content to wordpress
           await WordPressService.SetPageContent(pageContent);
 
-          // record posted info to disk, so we can avoid re-posting later
+          // locally record info about the facebook post
+          // (so the next loop iteration can avoid doing anything until facebook's latest post changes)
           lastRepostedMessage.Save(facebookMessage, facebookPictureUrl);
         }
       }
@@ -129,24 +124,13 @@ public static class Program
       @""});
   }
 
-  private static void DetermineNewPageImageContent(List<string> pageContent, string facebookPictureUrl)
+  private static void DetermineNewPageImageContent(List<string> pageContent, string wpImageId, string wpImageUrl)
   {
-    bool hasFacebookImage = !string.IsNullOrEmpty(facebookPictureUrl);
-    if (hasFacebookImage)
-    {
-      // TODO: ask wordpress for the right image id
-
-      pageContent.AddRange(new[]{
-        @"<!-- wp:image {""id"":527,""sizeSlug"":""full"",""linkDestination"":""none""} -->",
-        @"<figure class=""wp-block-image size-full""><img src=""" + Constants.WordPressPageImageUrl + @""" alt="""" class=""wp-image-527""/></figure>",
-        @"<!-- /wp:image -->",
-        @"",
-      });
-    }
-
-    Console.WriteLine("/////////////////////////////////////////////////////////");
-    Console.WriteLine("/////////////////// New content: ////////////////////////");
-    Console.WriteLine("/////////////////////////////////////////////////////////");
-    foreach (var line in pageContent) Console.WriteLine(line);
+    pageContent.AddRange(new[]{
+      @"<!-- wp:image {""id"":527,""sizeSlug"":""full"",""linkDestination"":""none""} -->",
+      @"<figure class=""wp-block-image size-full""><img src=""" + Constants.WordPressPageImageUrl + @""" alt="""" class=""wp-image-527""/></figure>",
+      @"<!-- /wp:image -->",
+      @"",
+    });
   }
 }

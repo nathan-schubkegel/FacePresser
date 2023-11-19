@@ -67,41 +67,51 @@ public class FacebookPageService
     }
   }
 
-  public async Task<List<FacebookPagePost>> GetMostRecentPostsOnPage(string pageId, string pageAccessToken)
+  public async Task<FacebookPagePost> GetMostRecentPostOnPage(string pageId, string pageAccessToken)
   {
-    Console.WriteLine("Asking facebook for most recent posts on a page");
+    Console.WriteLine("Asking facebook for most recent post on page");
     using (var client = new HttpClient())
     {
       client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
 
+      // TODO: perform paginated requests until a satisfactory post is found
       HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
       string result = await response.Content.ReadAsStringAsync();
-      Console.WriteLine("facebook's response: " + result);
       if (response.IsSuccessStatusCode)
       {
-        var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-
-        var results = new List<FacebookPagePost>();
-        foreach (var post in jsonRes["data"])
+        try
         {
-          if ((bool?)post["is_expired"] == true || (bool?)post["is_hidden"] == true) continue;
-          
-          if ((bool?)post["is_published"] == false) continue;
-          
-          results.Add(new FacebookPagePost
-          { 
-            Id = post["id"]?.ToString(),
-            FromId = post["from"]["id"]?.ToString(),
-            FromName = post["from"]["name"]?.ToString(),
-            Message = post["message"]?.ToString(),
-            FullPicture = post["full_picture"]?.ToString(),
-          });
+          var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          foreach (var post in jsonRes["data"])
+          {
+            if ((bool?)post["is_expired"] == true || (bool?)post["is_hidden"] == true) continue;
+            
+            if ((bool?)post["is_published"] == false) continue;
+            
+            var pagePost = new FacebookPagePost
+            { 
+              Id = post["id"]?.ToString(),
+              FromId = post["from"]["id"]?.ToString(),
+              FromName = post["from"]["name"]?.ToString(),
+              Message = post["message"]?.ToString(),
+              FullPicture = post["full_picture"]?.ToString(),
+            };
+
+            Console.WriteLine("facebook's response (found page post only): " + JsonConvert.SerializeObject(pagePost, Formatting.Indented));
+            return pagePost;
+          }
+          throw new Exception("Didn't find any usable posts");
         }
-        return results;
+        catch
+        {
+          Console.WriteLine("facebook's response: " + result);
+          throw;
+        }
       }
       else
       {
-        throw new Exception($"GetMostRecentPostsOnPage({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        Console.WriteLine("facebook's response: " + result);
+        throw new Exception($"GetMostRecentPostOnPage({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }
   }
@@ -130,38 +140,8 @@ public class FacebookPageService
         $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name.");
     }
 
-    // get the most recent posts
-    var posts = await pageService.GetMostRecentPostsOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
-    Console.WriteLine("Page Posts:" + (posts.Count == 0 ? " (none)" : ""));
-    foreach (var post in posts)
-    {
-      Console.WriteLine(JsonConvert.SerializeObject(post, Formatting.Indented));
-    }
-    return (posts[0].Message, posts[0].FullPicture);
-  }
-
-  public static async Task<byte[]> DownloadFacebookImageAsync(string url)
-  {
-    Console.WriteLine("Downloading image from facebook: " + url);
-    using (var pictureStream = new MemoryStream())
-    using (var client = new HttpClient())
-    {
-      HttpResponseMessage response = await client.GetAsync(url);
-      using var responseStream = await response.Content.ReadAsStreamAsync();
-      responseStream.CopyTo(pictureStream);
-      pictureStream.Position = 0;
-      if (response.IsSuccessStatusCode)
-      {
-        Console.WriteLine($"facebook's response: success ({pictureStream.Length} bytes)");
-        return pictureStream.ToArray();
-      }
-      else
-      {
-        using var resultReader = new StreamReader(pictureStream);
-        var result = resultReader.ReadToEnd();
-        Console.WriteLine("facebook's response: " + result);
-        throw new Exception($"Picture download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
-      }
-    }
+    // get the most recent post
+    var post = await pageService.GetMostRecentPostOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
+    return (post.Message, post.FullPicture);
   }
 }

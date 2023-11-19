@@ -46,6 +46,7 @@ public class Constants
   public static readonly string FacebookLoginRedirectCertPassword;
   public static readonly int    FacebookLoginRedirectListeningPort;
   public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.json";
+  public static readonly string FacebookImageCacheFileName = "private_resource_last_downloaded_facebook_image.json";
   public static readonly string LastRepostedMessageFileName = "private_resource_last_reposted_message.json";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;
