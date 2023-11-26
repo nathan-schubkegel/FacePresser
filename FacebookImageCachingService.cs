@@ -23,6 +23,11 @@ public static class FacebookImageCachingService
         {
           var text = File.ReadAllText(Constants.FacebookImageCacheFileName);
           _cachedImage = JsonConvert.DeserializeObject<CachedImage>(text, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          if (_cachedImage.Bytes == null || _cachedImage.Bytes.Length == 0 || string.IsNullOrEmpty(_cachedImage.Url))
+          {
+            Console.WriteLine($"Invalid content in {Constants.FacebookImageCacheFileName}; will ignore file");
+            _cachedImage = new CachedImage();
+          }
         }
         catch (Exception ex)
         {
@@ -52,7 +57,7 @@ public static class FacebookImageCachingService
     return _cachedImage.Bytes;
   }
 
-  private static async Task<byte[]> DownloadFacebookImageAsync(string url)
+  public static async Task<byte[]> DownloadFacebookImageAsync(string url)
   {
     Console.WriteLine("Downloading image from facebook: " + url);
     using (var pictureStream = new MemoryStream())

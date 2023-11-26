@@ -33,9 +33,19 @@ public class Constants
     WordPressAuthPassword = GetConstant("WordPressAuthPassword");
     WordPressSite = GetConstant("WordPressSite");
     WordPressPageId = GetConstant("WordPressPageId");
+    
     WordPressPageHeadingTextWhereReplacementStarts = GetConstant("WordPressPageHeadingTextWhereReplacementStarts");
+    if (string.IsNullOrEmpty(WordPressPageHeadingTextWhereReplacementStarts.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(WordPressPageHeadingTextWhereReplacementStarts)}");
+    }
+
     WordPressPageFooter = GetConstant("WordPressPageFooter");
-    WordPressPageImageUrl = GetConstant("WordPressPageImageUrl");
+    WordPressPageImageNamePattern = GetConstant("WordPressPageImageNamePattern");
+    if (string.IsNullOrEmpty(WordPressPageImageNamePattern.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(WordPressPageImageNamePattern)}");
+    }
   }
 
   public static readonly string ConstantsFileName = "private_resource_constants.json";
@@ -56,5 +66,5 @@ public class Constants
   public static readonly string WordPressPageId;
   public static readonly string WordPressPageHeadingTextWhereReplacementStarts;
   public static readonly string WordPressPageFooter;
-  public static readonly string WordPressPageImageUrl;
+  public static readonly string WordPressPageImageNamePattern;
 }

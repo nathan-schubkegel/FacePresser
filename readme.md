@@ -36,7 +36,8 @@ You need to create a `private_resource_constants.json` file in the app's working
                                                                          // all content from this block down will be replaced by this program
 
       "WordPressPageFooter": "This is <b>HTML text</b> that will show up after the scraped post message content, in a paragraph block.",
-      "WordPressPageImageUrl": "url/to/some/image_on_your_site.png", // if populated, this image will be included after the footer
+      "WordPressPageImageNamePattern": "FacePresserAutoUploadedImage", // This text will be used in the wordpress uploaded image filename.
+                                                                       // All other wordpress media items matching this text will be deleted!
     }
 
 On initial launch, this project uses a browser to request permission to use your facebook account.

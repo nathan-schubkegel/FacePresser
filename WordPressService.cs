@@ -111,7 +111,7 @@ public static class WordPressService
           foreach (var jsonItem in jsonArray)
           {
             var id = (string)jsonItem["id"];
-            var url = (string)jsonItem["media_details"]["source_url"];
+            var url = (string)jsonItem["media_details"]?["source_url"];
             if (id == null || url == null) continue; // skip this one, brother
             items.Add(new WordPressMediaItem { Id = id, Url = url });
           }
@@ -133,8 +133,12 @@ public static class WordPressService
     }
   }
 
+/*
   public static async Task<(string imageId, string imageUrl)> EnsureImageIsUploaded(byte[] imageContent)
   {
+    // look at all wordpress images that have been uploaded by this application
+    //FindMediaItems
+    
     // TODO: actually implement this
     await Task.Yield();
     return ("527", Constants.WordPressPageImageUrl);
@@ -142,5 +146,70 @@ public static class WordPressService
     // also https://stackoverflow.com/questions/47478733/upload-media-to-wordpress-rest-api
     // and https://stackoverflow.com/questions/37432114/wp-rest-api-upload-image
     // and https://wordpress.stackexchange.com/questions/415506/uploading-media-to-wordpress-api-with-c-httpclient
+  }
+*/
+  
+  public static async Task<WordPressMediaItem> UploadMediaItem(byte[] fileContent)
+  {
+    string mimeType;
+    try
+    {
+      mimeType = ImageTypeChecker.GetImageMimeType(fileContent);
+    }
+    catch (Exception ex)
+    {
+      throw new Exception($"Unable to upload new media item to wordpress because it is not a recognized image type", ex);
+    }
+    
+    string fileName;
+    try
+    {
+      fileName = Constants.WordPressPageImageNamePattern + "-" + Guid.NewGuid().ToString() + "." + mimeType.Substring("image/".Length);
+    }
+    catch (Exception ex)
+    {
+      throw new Exception($"Unable to upload new media item to wordpress because a filename could not be determined", ex);
+    }
+
+    Console.WriteLine($"Uploading new WordPress media item named {fileName}");
+    using (var client = new HttpClient())
+    {
+      client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
+
+      var request = new HttpRequestMessage(HttpMethod.Post, $"wp/v2/media");
+      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
+        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      var content = new ByteArrayContent(fileContent);
+      content.Headers.Remove("Content-Type");
+      content.Headers.Add("Content-Type", mimeType);
+      content.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
+      request.Content = content;
+      HttpResponseMessage response = await client.SendAsync(request);
+      string result = await response.Content.ReadAsStringAsync();
+      if (response.IsSuccessStatusCode)
+      {
+        try
+        {
+          var jsonItem = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var id = (string)jsonItem["id"];
+          var url = (string)jsonItem["source_url"];
+          if (id == null || url == null) throw new Exception("Invalid response id or url");
+          var item = new WordPressMediaItem { Id = id, Url = url };
+          Console.WriteLine("wordpress's response (media item only): " + JsonConvert.SerializeObject(item, Formatting.Indented));
+          return item;
+        }
+        catch (Exception ex)
+        {
+          Console.WriteLine("wordpress's response: " + result);
+          throw new Exception($"UploadMediaItem() failed to process response from WordPress", ex);
+        }
+      }
+      else
+      {
+        Console.WriteLine("wordpress's response: " + result);
+        throw new Exception($"UploadMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+      }
+    }
   }
 }

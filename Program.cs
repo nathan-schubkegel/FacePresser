@@ -6,6 +6,14 @@ public static class Program
 {
   public static async Task Main(string[] args)
   {
+    var imageBytes = await FacebookImageCachingService.DownloadFacebookImageAsync("https://scontent-sea1-1.xx.fbcdn.net/v/t39.30808-6/403689597_10161437014445879_545593422267821146_n.jpg?stp=dst-jpg_s600x600&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_ohc=QqcFGjCpcekAX8MbFC-&_nc_ht=scontent-sea1-1.xx&oh=00_AfBS7_God8MeFpmAVe4CD_iEN0UyMpT5PhFVVLzy-d5ELQ&oe=65690E6E");
+    var mediaItem = await WordPressService.UploadMediaItem(imageBytes);
+    Console.WriteLine("New MediaItem Id = " + mediaItem.Id);
+    Console.WriteLine("New MediaItem Url = " + mediaItem.Url);
+  }
+  
+  public static async Task barf(string[] args)
+  {
     long loopNumber = 0;
     Random rnd = new Random();
     RepostedMessage lastRepostedMessage = null;
@@ -42,10 +50,10 @@ public static class Program
 
             // TODO: turn this on
             //var (wpImageId, wpImageUrl) = await WordPressService.EnsureImageIsUploaded(facebookImageContent);
-            string wpImageId = "527";
-            string wpImageUrl = Constants.WordPressPageImageUrl;
+            //string wpImageId = "527";
+            //string wpImageUrl = Constants.WordPressPageImageUrl;
 
-            DetermineNewPageImageContent(pageContent, wpImageId, wpImageUrl);
+            //DetermineNewPageImageContent(pageContent, wpImageId, wpImageUrl);
           }
 
           // upload the new page content to wordpress
@@ -124,6 +132,7 @@ public static class Program
       @""});
   }
 
+/*
   private static void DetermineNewPageImageContent(List<string> pageContent, string wpImageId, string wpImageUrl)
   {
     pageContent.AddRange(new[]{
@@ -133,4 +142,5 @@ public static class Program
       @"",
     });
   }
+*/
 }
