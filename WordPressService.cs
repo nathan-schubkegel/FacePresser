@@ -111,11 +111,11 @@ public static class WordPressService
           foreach (var jsonItem in jsonArray)
           {
             var id = (string)jsonItem["id"];
-            var url = (string)jsonItem["media_details"]?["source_url"];
+            var url = (string)jsonItem["source_url"];
             if (id == null || url == null) continue; // skip this one, brother
             items.Add(new WordPressMediaItem { Id = id, Url = url });
           }
-          Console.WriteLine("wordpress's response (media items only):" + (items.Count == 0 ? " (0 items)" : ""));
+          Console.WriteLine($"wordpress's response ({items.Count} of {jsonArray.Count} media items only):" + (items.Count == 0 ? " (0 items)" : ""));
           foreach (var item in items) Console.WriteLine(JsonConvert.SerializeObject(item, Formatting.Indented));
           return items;
         }

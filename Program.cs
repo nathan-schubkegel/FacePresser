@@ -6,10 +6,13 @@ public static class Program
 {
   public static async Task Main(string[] args)
   {
-    var imageBytes = await FacebookImageCachingService.DownloadFacebookImageAsync("https://scontent-sea1-1.xx.fbcdn.net/v/t39.30808-6/403689597_10161437014445879_545593422267821146_n.jpg?stp=dst-jpg_s600x600&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_ohc=QqcFGjCpcekAX8MbFC-&_nc_ht=scontent-sea1-1.xx&oh=00_AfBS7_God8MeFpmAVe4CD_iEN0UyMpT5PhFVVLzy-d5ELQ&oe=65690E6E");
-    var mediaItem = await WordPressService.UploadMediaItem(imageBytes);
-    Console.WriteLine("New MediaItem Id = " + mediaItem.Id);
-    Console.WriteLine("New MediaItem Url = " + mediaItem.Url);
+    //var imageBytes = await FacebookImageCachingService.DownloadFacebookImageAsync("https://scontent-sea1-1.xx.fbcdn.net/v/t39.30808-6/403689597_10161437014445879_545593422267821146_n.jpg?stp=dst-jpg_s600x600&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_ohc=QqcFGjCpcekAX8MbFC-&_nc_ht=scontent-sea1-1.xx&oh=00_AfBS7_God8MeFpmAVe4CD_iEN0UyMpT5PhFVVLzy-d5ELQ&oe=65690E6E");
+    //var mediaItem = await WordPressService.UploadMediaItem(imageBytes);
+    //Console.WriteLine("New MediaItem Id = " + mediaItem.Id);
+    //Console.WriteLine("New MediaItem Url = " + mediaItem.Url);
+    
+    var items = await WordPressService.FindMediaItems(Constants.WordPressPageImageNamePattern);
+    foreach (var item in items) Console.WriteLine($"{item.Id} at {item.Url}");
   }
   
   public static async Task barf(string[] args)
