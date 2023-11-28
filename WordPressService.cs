@@ -133,22 +133,39 @@ public static class WordPressService
     }
   }
 
-/*
-  public static async Task<(string imageId, string imageUrl)> EnsureImageIsUploaded(byte[] imageContent)
+  public static async Task<WordPressMediaItem> EnsureImageIsUploaded(byte[] imageContent)
   {
-    // look at all wordpress images that have been uploaded by this application
-    //FindMediaItems
+    // download every wordpress image that has been uploaded by this application
+    var existingItems = await FindMediaItems(Constants.WordPressPageImageNamePattern);
+    WordPressMediaItem? matchingItem = null;
+    foreach (var item in existingItems)
+    {
+      var imageBytes = await DownloadMediaItem(item);
+      if (imageBytes.SequenceEqual(imageContent))
+      {
+        Console.WriteLine("Found already-existing media item matching image content");
+        matchingItem = item;
+        break;
+      }
+    }
     
-    // TODO: actually implement this
-    await Task.Yield();
-    return ("527", Constants.WordPressPageImageUrl);
+    // delete every non-matching wordpress image
+    foreach (var item in existingItems.Where(x => x != matchingItem))
+    {
+      await DeleteMediaItem(item);
+    }
 
-    // also https://stackoverflow.com/questions/47478733/upload-media-to-wordpress-rest-api
-    // and https://stackoverflow.com/questions/37432114/wp-rest-api-upload-image
-    // and https://wordpress.stackexchange.com/questions/415506/uploading-media-to-wordpress-api-with-c-httpclient
+    if (matchingItem == null)
+    {
+      // upload a new wordpress media item
+      return await UploadMediaItem(imageContent);
+    }
+    else
+    {
+      return matchingItem;
+    }
   }
-*/
-  
+
   public static async Task<WordPressMediaItem> UploadMediaItem(byte[] fileContent)
   {
     string mimeType;
@@ -209,6 +226,69 @@ public static class WordPressService
       {
         Console.WriteLine("wordpress's response: " + result);
         throw new Exception($"UploadMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+      }
+    }
+  }
+  
+  public static async Task<byte[]> DownloadMediaItem(WordPressMediaItem mediaItem)
+  {
+    Console.WriteLine("Downloading media item from wordpress at " + mediaItem.Url);
+    using (var pictureStream = new MemoryStream())
+    using (var client = new HttpClient())
+    {
+      using HttpResponseMessage response = await client.GetAsync(mediaItem.Url);
+      using var responseStream = await response.Content.ReadAsStreamAsync();
+      responseStream.CopyTo(pictureStream);
+      pictureStream.Position = 0;
+      if (response.IsSuccessStatusCode)
+      {
+        Console.WriteLine($"wordpress's response: success ({pictureStream.Length} bytes)");
+        return pictureStream.ToArray();
+      }
+      else
+      {
+        using var resultReader = new StreamReader(pictureStream);
+        var result = resultReader.ReadToEnd();
+        Console.WriteLine("wordpress's response: " + result);
+        throw new Exception($"Media item download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+      }
+    }
+  }
+  
+  public static async Task DeleteMediaItem(WordPressMediaItem mediaItem)
+  {
+    Console.WriteLine("Deleting media item " + mediaItem.Id + " from wordpress at " + mediaItem.Url);
+    using (var pictureStream = new MemoryStream())
+    using (var client = new HttpClient())
+    {
+      client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
+      
+      var request = new HttpRequestMessage(HttpMethod.Delete, $"wp/v2/media/{mediaItem.Id}?force=true");
+      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
+        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      using HttpResponseMessage response = await client.SendAsync(request);
+      string result = await response.Content.ReadAsStringAsync();
+      if (response.IsSuccessStatusCode)
+      {
+        try
+        {
+          var jsonItem = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          if (!(bool)jsonItem["deleted"])
+          {
+            throw new Exception("media item was not deleted");
+          }
+        }
+        catch (Exception ex)
+        {
+          Console.WriteLine("wordpress's response: " + result);
+          throw new Exception($"DeleteMediaItem() failed to process response from WordPress", ex);
+        }
+      }
+      else
+      {
+        Console.WriteLine("wordpress's response: " + result);
+        throw new Exception($"DeleteMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }
   }

@@ -11,8 +11,12 @@ public static class Program
     //Console.WriteLine("New MediaItem Id = " + mediaItem.Id);
     //Console.WriteLine("New MediaItem Url = " + mediaItem.Url);
     
-    var items = await WordPressService.FindMediaItems(Constants.WordPressPageImageNamePattern);
-    foreach (var item in items) Console.WriteLine($"{item.Id} at {item.Url}");
+    //var items = await WordPressService.FindMediaItems(Constants.WordPressPageImageNamePattern);
+    //foreach (var item in items) Console.WriteLine($"{item.Id} at {item.Url}");
+     var imageSource = File.ReadAllBytes(@"C:\Users\Bratface\Pictures\0.jpg");
+    var result = await WordPressService.EnsureImageIsUploaded(imageSource);
+    Console.WriteLine("Result id = " + result.Id);
+    Console.WriteLine("Result url = " + result.Url);
   }
   
   public static async Task barf(string[] args)
