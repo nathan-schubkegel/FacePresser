@@ -63,7 +63,7 @@ public static class FacebookImageCachingService
     using (var pictureStream = new MemoryStream())
     using (var client = new HttpClient())
     {
-      HttpResponseMessage response = await client.GetAsync(url);
+      using HttpResponseMessage response = await client.GetAsync(url);
       using var responseStream = await response.Content.ReadAsStreamAsync();
       responseStream.CopyTo(pictureStream);
       pictureStream.Position = 0;

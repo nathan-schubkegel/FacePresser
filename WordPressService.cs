@@ -24,7 +24,7 @@ public static class WordPressService
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
         Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
         Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
-      HttpResponseMessage response = await client.SendAsync(request);
+      using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
@@ -74,7 +74,7 @@ public static class WordPressService
       foreach (var line in newContent) Console.WriteLine(line);
 
       request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-      HttpResponseMessage response = await client.SendAsync(request);
+      using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       Console.WriteLine("wordpress's response: " + result);
       if (response.IsSuccessStatusCode)
@@ -100,7 +100,7 @@ public static class WordPressService
       request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
         Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
         Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
-      HttpResponseMessage response = await client.SendAsync(request);
+      using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
@@ -185,7 +185,7 @@ public static class WordPressService
       content.Headers.Add("Content-Type", mimeType);
       content.Headers.Add("Content-Disposition", $"attachment; filename=\"{fileName}\"");
       request.Content = content;
-      HttpResponseMessage response = await client.SendAsync(request);
+      using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {

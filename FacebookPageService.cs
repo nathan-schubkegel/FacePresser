@@ -34,7 +34,7 @@ public class FacebookPageService
     using (var client = new HttpClient())
     {
       client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
-      HttpResponseMessage response = await client.GetAsync($"{userId}/accounts?access_token={_userAccessToken}");
+      using HttpResponseMessage response = await client.GetAsync($"{userId}/accounts?access_token={_userAccessToken}");
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
@@ -75,7 +75,7 @@ public class FacebookPageService
       client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
 
       // TODO: perform paginated requests until a satisfactory post is found
-      HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
+      using HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
