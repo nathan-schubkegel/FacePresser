@@ -6,21 +6,6 @@ public static class Program
 {
   public static async Task Main(string[] args)
   {
-    //var imageBytes = await FacebookImageCachingService.DownloadFacebookImageAsync("https://scontent-sea1-1.xx.fbcdn.net/v/t39.30808-6/403689597_10161437014445879_545593422267821146_n.jpg?stp=dst-jpg_s600x600&_nc_cat=104&ccb=1-7&_nc_sid=5f2048&_nc_ohc=QqcFGjCpcekAX8MbFC-&_nc_ht=scontent-sea1-1.xx&oh=00_AfBS7_God8MeFpmAVe4CD_iEN0UyMpT5PhFVVLzy-d5ELQ&oe=65690E6E");
-    //var mediaItem = await WordPressService.UploadMediaItem(imageBytes);
-    //Console.WriteLine("New MediaItem Id = " + mediaItem.Id);
-    //Console.WriteLine("New MediaItem Url = " + mediaItem.Url);
-    
-    //var items = await WordPressService.FindMediaItems(Constants.WordPressPageImageNamePattern);
-    //foreach (var item in items) Console.WriteLine($"{item.Id} at {item.Url}");
-     var imageSource = File.ReadAllBytes(@"C:\Users\Bratface\Pictures\0.jpg");
-    var result = await WordPressService.EnsureImageIsUploaded(imageSource);
-    Console.WriteLine("Result id = " + result.Id);
-    Console.WriteLine("Result url = " + result.Url);
-  }
-  
-  public static async Task barf(string[] args)
-  {
     long loopNumber = 0;
     Random rnd = new Random();
     RepostedMessage lastRepostedMessage = null;
@@ -55,12 +40,8 @@ public static class Program
           {
             byte[] facebookImageContent = await FacebookImageCachingService.GetImageAsync(facebookPictureUrl);
 
-            // TODO: turn this on
-            //var (wpImageId, wpImageUrl) = await WordPressService.EnsureImageIsUploaded(facebookImageContent);
-            //string wpImageId = "527";
-            //string wpImageUrl = Constants.WordPressPageImageUrl;
-
-            //DetermineNewPageImageContent(pageContent, wpImageId, wpImageUrl);
+            var wpMediaItem = await WordPressService.EnsureImageIsUploaded(facebookImageContent);
+            DetermineNewPageImageContent(pageContent, wpMediaItem);
           }
 
           // upload the new page content to wordpress
@@ -139,15 +120,13 @@ public static class Program
       @""});
   }
 
-/*
-  private static void DetermineNewPageImageContent(List<string> pageContent, string wpImageId, string wpImageUrl)
+  private static void DetermineNewPageImageContent(List<string> pageContent, WordPressMediaItem mediaItem)
   {
     pageContent.AddRange(new[]{
-      @"<!-- wp:image {""id"":527,""sizeSlug"":""full"",""linkDestination"":""none""} -->",
-      @"<figure class=""wp-block-image size-full""><img src=""" + Constants.WordPressPageImageUrl + @""" alt="""" class=""wp-image-527""/></figure>",
+      @"<!-- wp:image {""id"":" + mediaItem.Id + @",""sizeSlug"":""full"",""linkDestination"":""none""} -->",
+      @"<figure class=""wp-block-image size-full""><img src=""" + mediaItem.Url + @""" alt="""" class=""wp-image-" + mediaItem.Id + @"""/></figure>",
       @"<!-- /wp:image -->",
       @"",
     });
   }
-*/
 }

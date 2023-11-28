@@ -76,13 +76,13 @@ public static class WordPressService
       request.Content = new StringContent(body, Encoding.UTF8, "application/json");
       using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
-      Console.WriteLine("wordpress's response: " + result);
       if (response.IsSuccessStatusCode)
       {
         Console.WriteLine("Wordpress page content successfully posted");
       }
       else
       {
+        Console.WriteLine("wordpress's response: " + result);
         throw new Exception($"SetPageContent({Constants.WordPressPageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }
