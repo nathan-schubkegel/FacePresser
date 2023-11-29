@@ -18,9 +18,6 @@ public static class Program
       Console.WriteLine("Loop #" + ++loopNumber);
       try
       {
-        // get wordpress page content first, to minimize facebook queries in case this step fails repeatedly
-        var pageContent = await WordPressService.GetPageContent();
-
         lastRepostedMessage ??= RepostedMessage.Load();
 
         var (facebookMessage, facebookPictureUrl) = await FacebookPageService.GetLatestFacebookPostAsync();
@@ -31,7 +28,10 @@ public static class Program
         }
         else
         {
-          // first determine the new page content
+          // get wordpress page content
+          var pageContent = await WordPressService.GetPageContent();
+
+          // determine the new page content
           // (so if this step is going to fail, it happens before anything is uploaded!)
           DetermineNewPageMessageContent(pageContent, facebookMessage);
 
