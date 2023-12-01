@@ -9,7 +9,7 @@ public static class FacebookUserAccessTokenService
     public string UserAccessToken;
   }
   
-  public static string GetUserAccessToken()
+  public static async Task<string> GetUserAccessToken()
   {
     if (File.Exists(Constants.FacebookUserAccessTokenFileName))
     {
@@ -124,20 +124,16 @@ public static class FacebookUserAccessTokenService
       _ = redirectListener.Run();
 
       Console.WriteLine("Launching a firefox window and waiting up to 5 minutes for the user give app permission in facebook...");
+      Console.WriteLine("(if login fails, you will need to restart this application)");
       using (var p = System.Diagnostics.Process.Start(Constants.BrowserExePath, string.Format(Constants.BrowserExeArgs, loginUrl))) { }
-      Task.WaitAny(Task.Delay(TimeSpan.FromMinutes(5)), userAccessToken.Task);
-      if (!userAccessToken.Task.IsCompleted)
-      {
-        throw new Exception("Timed out after 5 minutes of waiting for user to give app permission in facebook");
-      }
+      var accessToken = await userAccessToken.Task;
+      Console.WriteLine("h'okay, we have user access token " + accessToken);
+      return accessToken;
     }
     finally
     {
       redirectListener.OnHttpRequest -= d;
     }
-    var accessToken = userAccessToken.Task.Result;
-    Console.WriteLine("h'okay, we have user access token " + accessToken);
-    return accessToken;
   }
   
   public static void DeleteCachedUserAccessToken()

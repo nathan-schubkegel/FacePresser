@@ -137,7 +137,7 @@ public static class WordPressService
   {
     // download every wordpress image that has been uploaded by this application
     var existingItems = await FindMediaItems(Constants.WordPressPageImageNamePattern);
-    WordPressMediaItem? matchingItem = null;
+    WordPressMediaItem matchingItem = null;
     foreach (var item in existingItems)
     {
       var imageBytes = await DownloadMediaItem(item);

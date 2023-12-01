@@ -119,7 +119,7 @@ public class FacebookPageService
   public static async Task<(string facebookMessage, string facebookPictureUrl)> GetLatestFacebookPostAsync()
   {
     // get user access token
-    var userAccessToken = FacebookUserAccessTokenService.GetUserAccessToken();
+    var userAccessToken = await FacebookUserAccessTokenService.GetUserAccessToken();
     var pageService = new FacebookPageService(userAccessToken);
 
     // find the pages that can be watched
