@@ -62,6 +62,7 @@ public class FacebookPageService
       else
       {
         Console.WriteLine("facebook's response: " + result);
+        HandleInvalidAccessTokenResult(result);
         throw new Exception($"GetPagesOfUser({userId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }
@@ -111,6 +112,7 @@ public class FacebookPageService
       else
       {
         Console.WriteLine("facebook's response: " + result);
+        HandleInvalidAccessTokenResult(result);
         throw new Exception($"GetMostRecentPostOnPage({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
       }
     }
@@ -123,16 +125,7 @@ public class FacebookPageService
     var pageService = new FacebookPageService(userAccessToken);
 
     // find the pages that can be watched
-    List<FacebookPageAccount> pageAccounts;
-    try
-    {
-      pageAccounts = await pageService.GetPageAccounts("me");
-    }
-    catch
-    {
-      FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
-      throw;
-    }
+    List<FacebookPageAccount> pageAccounts = await pageService.GetPageAccounts("me");
     var pageAccount = pageAccounts.FirstOrDefault(a => a.PageName == Constants.FacebookPageName);
     if (pageAccount == null)
     {
@@ -143,5 +136,21 @@ public class FacebookPageService
     // get the most recent post
     var post = await pageService.GetMostRecentPostOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
     return (post.Message, post.FullPicture);
+  }
+
+  private static void HandleInvalidAccessTokenResult(string result)
+  {
+    try
+    {
+      var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+      var errorType = (string)jsonRes["error"]?["type"];
+      if (errorType == "OAuthException")
+      {
+        FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
+      }
+    }
+    catch
+    {
+    }
   }
 }
