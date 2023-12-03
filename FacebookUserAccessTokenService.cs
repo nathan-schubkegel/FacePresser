@@ -47,6 +47,7 @@ public static class FacebookUserAccessTokenService
       $"scope=pages_read_engagement,pages_read_user_content,pages_show_list&" +
       $"response_type=code";
 
+    int loginDenied = 0;
     TaskCompletionSource<string> userAccessToken = new TaskCompletionSource<string>();
     FacebookLoginRedirectListener.HttpRequestDelegate d = (string url, string[] parameters) =>
     {
@@ -58,6 +59,7 @@ public static class FacebookUserAccessTokenService
           var p = parameters.FirstOrDefault(x => x.StartsWith("code="));
           if (p == null)
           {
+            Interlocked.Increment(ref loginDenied);
             p = parameters.FirstOrDefault(x => x.StartsWith("error="));
             userAccessToken.SetException(new Exception(p ?? "facebook login probably denied"));
           }
@@ -124,18 +126,27 @@ public static class FacebookUserAccessTokenService
       _ = redirectListener.Run();
 
       Console.WriteLine("Launching a firefox window and waiting up to 5 minutes for the user give app permission in facebook...");
-      Console.WriteLine("(if login fails, you will need to restart this application)");
       using (var p = System.Diagnostics.Process.Start(Constants.BrowserExePath, string.Format(Constants.BrowserExeArgs, loginUrl))) { }
       var accessToken = await userAccessToken.Task;
       Console.WriteLine("h'okay, we have user access token " + accessToken);
       return accessToken;
+    }
+    catch
+    {
+      if (Interlocked.Exchange(ref loginDenied, 0) > 0)
+      {
+        Console.WriteLine("You must press enter before the script will make further attempts.");
+        Console.WriteLine("(this is to prevent a bazillion browser windows from opening)");
+        Console.ReadLine();
+      }
+      throw;
     }
     finally
     {
       redirectListener.OnHttpRequest -= d;
     }
   }
-  
+
   public static void DeleteCachedUserAccessToken()
   {
     if (File.Exists(Constants.FacebookUserAccessTokenFileName))
