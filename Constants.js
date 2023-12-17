@@ -1,4 +1,4 @@
-var fs = require('fs');
+const fs = require('fs');
 
 class Constants {}
 Constants.ConstantsFileName = "private_resource_constants.json";
@@ -33,7 +33,6 @@ Constants.WordPressPageHeadingTextWhereReplacementStarts = GetConstant("WordPres
 Constants.WordPressPageFooter = GetConstant("WordPressPageFooter");
 Constants.WordPressPageImageNamePattern = GetConstant("WordPressPageImageNamePattern");
 
-// mymodule.js
 module.exports = {
    Constants: Constants
 }

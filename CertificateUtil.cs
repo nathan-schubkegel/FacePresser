@@ -6,24 +6,6 @@ using System.Security.Cryptography.X509Certificates;
 
 public class CertificateUtil
 {
-  // it creates a cert, but it's not what I needed this time...
-  // holding onto this method in case I need it later
-  public static void MakeCertECDSA()
-  {
-    var ecdsa = ECDsa.Create(); // generate asymmetric key pair
-    var req = new CertificateRequest("cn=foobar", ecdsa, HashAlgorithmName.SHA256);
-    var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(500));
-
-    // Create PFX (PKCS #12) with private key
-    File.WriteAllBytes("cert_private3.pfx", cert.Export(X509ContentType.Pfx));
-
-    // Create Base 64 encoded CER (public key only)
-    File.WriteAllText("cert_public3.cer",
-      "-----BEGIN CERTIFICATE-----\r\n"
-      + Convert.ToBase64String(cert.Export(X509ContentType.Cert), Base64FormattingOptions.InsertLineBreaks)
-      + "\r\n-----END CERTIFICATE-----");
-  }
-
   // this was very helpful
   // https://stackoverflow.com/questions/55140360/how-to-create-a-selfsigned-certificate-with-certificaterequest-that-uses-microso
   public static void MakeCertRSA()
