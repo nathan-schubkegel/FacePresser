@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
@@ -11,8 +12,94 @@ public class WordPressMediaItem
   public string Url;
 }
 
+public class WordPressPost
+{
+  public string WordPressPostId;
+  public string FacebookPostId;
+  public string FacebookPostCreatedTime;
+  public string FacebookPostUpdatedTime;
+}
+
 public static class WordPressService
 {
+  public static async Task<List<WordPressPost>> GetWordPressPostsAfterDateTime(DateTime when)
+  {
+    List<WordPressPost> posts = new();
+    using var client = new HttpClient();
+    client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
+
+    int fetchedCount = 0;
+    int requestCount = 0;
+    while (true)
+    {
+      requestCount++;
+      Console.WriteLine($"Asking wordpress for posts after {when} (request {requestCount})...");
+      var whenText = when.ToUniversalTime().ToString("o");
+      var request = new HttpRequestMessage(HttpMethod.Get, $"wp/v2/posts?orderby=date&context=edit&after={whenText}&offset={fetchedCount}&per_page=3");
+      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
+        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
+        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      using HttpResponseMessage response = await client.SendAsync(request);
+      string result = await response.Content.ReadAsStringAsync();
+      if (response.IsSuccessStatusCode)
+      {
+        try
+        {
+          var jsonRes = JsonConvert.DeserializeObject<JArray>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          fetchedCount += jsonRes.Count;
+          Console.WriteLine($"Received {jsonRes.Count} posts.");
+          if (jsonRes.Count == 0) break;
+          //Console.WriteLine(jsonRes.ToString(Formatting.Indented));
+          foreach (var jsonPost in jsonRes)
+          {
+            var id = (string)jsonPost["id"];
+            var content = (string)jsonPost["content"]["raw"];
+            foreach (var line in content.GetLines())
+            {
+              if (line.Trim() == "") continue;
+              var match = Regex.Match(line, @"^\s*" + Regex.Escape("<!--") + @"(.*)" + Regex.Escape("-->") + @"\s*$");
+              if (match.Success)
+              {
+                var metaText = match.Groups[1].Value.Trim();
+                JObject metaJson;
+                try
+                {
+                  metaJson = JsonConvert.DeserializeObject<JObject>(metaText, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+                  posts.Add(new WordPressPost
+                  {
+                    WordPressPostId = id,
+                    FacebookPostId = (string)metaJson["facebookPostId"] ?? throw new Exception("metaJson is missing facebookPostId"),
+                    FacebookPostCreatedTime = (string)metaJson["facebookPostCreatedTime"] ?? throw new Exception("metaJson is missing facebookPostCreatedTime"),
+                    FacebookPostUpdatedTime = (string)metaJson["facebookPostUpdatedTime"] ?? throw new Exception("metaJson is missing facebookPostUpdatedTime"),
+                  });
+                  Console.WriteLine($"  Found WordPress post with id={id} and {metaText}");
+                }
+                catch (Exception ex)
+                {
+                  Console.WriteLine("Ignoring WordPress post with id=" + id + " because first line HTML comment caused " + ex.GetType() + ": " + ex.Message);
+                }
+              }
+              else Console.WriteLine("Ignoring WordPress post with id=" + id + " because first line is not a HTML comment");
+
+              break;
+            }
+          }
+        }
+        catch
+        {
+          Console.WriteLine("wordpress's response: " + result);
+          throw;
+        }
+      }
+      else
+      {
+        Console.WriteLine("wordpress's response: " + result);
+        throw new Exception($"GetWordPressPostsAfterDateTime({whenText}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+      }
+    }
+    return posts;
+  }
+
   public static async Task<List<string>> GetPageContent()
   {
     Console.WriteLine($"Asking wordpress for content of page {Constants.WordPressPageId}");
