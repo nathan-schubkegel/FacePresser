@@ -10,7 +10,8 @@ public class Constants
     var constants = JsonConvert.DeserializeObject<JObject>(jsonText, settings);
     string GetConstant(string name)
     {
-      return (string)constants[name] ?? throw new Exception(string.Format("missing {0} from {1}", name, ConstantsFileName));
+      return (string)constants[name]
+        ?? throw new Exception(string.Format("missing {0} from {1}", name, ConstantsFileName));
     }
 
     FacebookAppId = GetConstant("FacebookAppId");
@@ -18,13 +19,13 @@ public class Constants
     {
       throw new Exception($"invalid empty or whitespace {nameof(FacebookAppId)}");
     }
-    
+
     FacebookAppSecret = GetConstant("FacebookAppSecret");
     if (string.IsNullOrEmpty(FacebookAppSecret.Trim()))
     {
       throw new Exception($"invalid empty or whitespace {nameof(FacebookAppSecret)}");
     }
-    
+
     FacebookPageName = GetConstant("FacebookPageName");
     if (string.IsNullOrEmpty(FacebookPageName.Trim()))
     {
@@ -32,7 +33,8 @@ public class Constants
     }
 
     FacebookLoginRedirectCertFilePath = GetConstant("FacebookLoginRedirectCertFilePath");
-    if (string.IsNullOrEmpty(FacebookLoginRedirectCertFilePath)) FacebookLoginRedirectCertFilePath = "private_resource_self_signed_cert.pfx";
+    if (string.IsNullOrEmpty(FacebookLoginRedirectCertFilePath))
+      FacebookLoginRedirectCertFilePath = "private_resource_self_signed_cert.pfx";
 
     FacebookLoginRedirectCertPassword = GetConstant("FacebookLoginRedirectCertPassword");
 
@@ -47,29 +49,29 @@ public class Constants
     {
       throw new Exception($"invalid empty or whitespace {nameof(BrowserExePath)}");
     }
-    
+
     BrowserExeArgs = GetConstant("BrowserExeArgs");
-    
+
     WordPressAuthUsername = GetConstant("WordPressAuthUsername");
     if (string.IsNullOrEmpty(WordPressAuthUsername.Trim()))
     {
       throw new Exception($"invalid empty or whitespace {nameof(WordPressAuthUsername)}");
     }
-    
+
     WordPressAuthPassword = GetConstant("WordPressAuthPassword");
     if (string.IsNullOrEmpty(WordPressAuthPassword.Trim()))
     {
       throw new Exception($"invalid empty or whitespace {nameof(WordPressAuthPassword)}");
     }
-    
+
     WordPressSite = GetConstant("WordPressSite");
     if (string.IsNullOrEmpty(WordPressSite.Trim()))
     {
       throw new Exception($"invalid empty or whitespace {nameof(WordPressSite)}");
     }
-    
+
     WordPressPageFooter = GetConstant("WordPressPageFooter");
-    
+
     WordPressPageImageNamePattern = GetConstant("WordPressPageImageNamePattern");
     if (string.IsNullOrEmpty(WordPressPageImageNamePattern.Trim()))
     {
@@ -83,7 +85,7 @@ public class Constants
   public static readonly string FacebookPageName;
   public static readonly string FacebookLoginRedirectCertFilePath;
   public static readonly string FacebookLoginRedirectCertPassword;
-  public static readonly int    FacebookLoginRedirectListeningPort;
+  public static readonly int FacebookLoginRedirectListeningPort;
   public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.json";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;

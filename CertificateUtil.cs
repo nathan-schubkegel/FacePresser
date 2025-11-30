@@ -19,25 +19,51 @@ public class CertificateUtil
 
     X500DistinguishedName distinguishedName = new X500DistinguishedName($"CN=face-presser-selfie-cert");
 
-    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+    if (
+      System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+    )
     {
-      using (var rsa = new RSACryptoServiceProvider(4096, new CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider", Guid.NewGuid().ToString())))
+      using (
+        var rsa = new RSACryptoServiceProvider(
+          4096,
+          new CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider", Guid.NewGuid().ToString())
+        )
+      )
       {
         // this means this key will be deleted on Dispose / finalization
         rsa.PersistKeyInCsp = false;
 
-        var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest(
+          distinguishedName,
+          rsa,
+          HashAlgorithmName.SHA256,
+          RSASignaturePadding.Pkcs1
+        );
 
-        using (var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650))))
+        using (
+          var certificate = request.CreateSelfSigned(
+            new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
+            new DateTimeOffset(DateTime.UtcNow.AddDays(3650))
+          )
+        )
         {
-          File.WriteAllBytes(Constants.FacebookLoginRedirectCertFilePath, certificate.Export(X509ContentType.Pkcs12, Constants.FacebookLoginRedirectCertPassword));
+          File.WriteAllBytes(
+            Constants.FacebookLoginRedirectCertFilePath,
+            certificate.Export(X509ContentType.Pkcs12, Constants.FacebookLoginRedirectCertPassword)
+          );
         }
       }
     }
     else // linux
     {
-      using var proc = Process.Start("dotnet", "dev-certs https --export-path " + Constants.FacebookLoginRedirectCertFilePath +
-        " --trust --password \"" + Constants.FacebookLoginRedirectCertPassword + "\"");
+      using var proc = Process.Start(
+        "dotnet",
+        "dev-certs https --export-path "
+          + Constants.FacebookLoginRedirectCertFilePath
+          + " --trust --password \""
+          + Constants.FacebookLoginRedirectCertPassword
+          + "\""
+      );
       proc.WaitForExit();
       if (proc.ExitCode != 0)
       {
@@ -46,10 +72,13 @@ public class CertificateUtil
     }
 
     var fullCertFilePath = Path.GetFullPath(Constants.FacebookLoginRedirectCertFilePath);
-    Console.WriteLine("Hey. We just made a new self-signed cert at " + fullCertFilePath +
-      " and you're going to need to add this new cert to FireFox, like" +
-      " Tools > Options > Advanced > Certificates: View Certificates. Or" +
-      " suffer the wrath of the 'oh noes this is insecure' page in your browser." +
-      " For more info see https://support.mozilla.org/en-US/questions/1059377");
+    Console.WriteLine(
+      "Hey. We just made a new self-signed cert at "
+        + fullCertFilePath
+        + " and you're going to need to add this new cert to FireFox, like"
+        + " Tools > Options > Advanced > Certificates: View Certificates. Or"
+        + " suffer the wrath of the 'oh noes this is insecure' page in your browser."
+        + " For more info see https://support.mozilla.org/en-US/questions/1059377"
+    );
   }
 }

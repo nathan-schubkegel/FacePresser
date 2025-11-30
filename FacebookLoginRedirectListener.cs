@@ -18,7 +18,7 @@ public class FacebookLoginRedirectListener : IDisposable
   TcpListener _listener;
   HashSet<TcpClient> _clients = new HashSet<TcpClient>();
   X509Certificate2 _serverCert;
-  
+
   public delegate void HttpRequestDelegate(string url, string[] parameters);
   public event HttpRequestDelegate OnHttpRequest;
 
@@ -30,8 +30,12 @@ public class FacebookLoginRedirectListener : IDisposable
     CertificateUtil.MakeCertRSA();
 
     // read it from file
-    _serverCert = new X509Certificate2(Constants.FacebookLoginRedirectCertFilePath, Constants.FacebookLoginRedirectCertPassword, X509KeyStorageFlags.Exportable);
-    
+    _serverCert = new X509Certificate2(
+      Constants.FacebookLoginRedirectCertFilePath,
+      Constants.FacebookLoginRedirectCertPassword,
+      X509KeyStorageFlags.Exportable
+    );
+
     // start listening
     _listener = new TcpListener(IPAddress.Loopback, Constants.FacebookLoginRedirectListeningPort);
     _listener.Start();
@@ -46,7 +50,11 @@ public class FacebookLoginRedirectListener : IDisposable
     {
       foreach (var client in _clients)
       {
-        try { client.Dispose(); } catch { }
+        try
+        {
+          client.Dispose();
+        }
+        catch { }
       }
     }
   }
@@ -56,22 +64,23 @@ public class FacebookLoginRedirectListener : IDisposable
     while (true)
     {
       TcpClient client = await _listener.AcceptTcpClientAsync();
-      lock (_clients) _clients.Add(client);
+      lock (_clients)
+        _clients.Add(client);
       _ = ProcessClient(client);
     }
   }
-  
+
   private class MyTlsServer : DefaultTlsServer
   {
     public override ProtocolVersion[] GetProtocolVersions()
     {
       return new[] { ProtocolVersion.TLSv12 };
     }
-    
+
     private readonly X509Certificate2 _cert;
 
     public MyTlsServer(X509Certificate2 cert)
-        : base(new BcTlsCrypto(new SecureRandom()))
+      : base(new BcTlsCrypto(new SecureRandom()))
     {
       _cert = cert;
       if (!_cert.HasPrivateKey)
@@ -96,7 +105,8 @@ public class FacebookLoginRedirectListener : IDisposable
         (BcTlsCrypto)this.Crypto,
         keyPair.Private,
         cert,
-        al);
+        al
+      );
     }
   }
 
@@ -112,11 +122,12 @@ public class FacebookLoginRedirectListener : IDisposable
 
       using var reader = new StreamReader(proto.Stream);
       string messageData = await reader.ReadLineAsync();
-      
+
       Console.WriteLine("Received: {0}", messageData);
 
       var match = Regex.Match(messageData, @"GET (.*?) HTTP");
-      if (!match.Success) throw new Exception("Doesn't look like HTTP GET request");
+      if (!match.Success)
+        throw new Exception("Doesn't look like HTTP GET request");
 
       string url = match.Groups[1].Value;
       string[] parts = url.Split('?');
@@ -132,7 +143,8 @@ public class FacebookLoginRedirectListener : IDisposable
           htmlContent += $"<tr><th>{nameValue[0]}</th><td>{nameValue[1]}</td></tr>";
         }
       }
-      htmlContent += @"</table>
+      htmlContent +=
+        @"</table>
 <script>
   setTimeout(function() {
       window.close()
@@ -140,12 +152,14 @@ public class FacebookLoginRedirectListener : IDisposable
 </script>
 </body></html>";
 
-      byte[] message = System.Text.Encoding.UTF8.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{htmlContent}\r\n");
+      byte[] message = System.Text.Encoding.UTF8.GetBytes(
+        $"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n{htmlContent}\r\n"
+      );
       proto.Stream.Write(message);
       proto.Stream.Flush();
       proto.Close();
       Console.WriteLine("Successfully wrote HTML response");
-      
+
       OnHttpRequest?.Invoke(url, parameters);
     }
     catch (Exception e)

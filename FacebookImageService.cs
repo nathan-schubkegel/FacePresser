@@ -1,6 +1,6 @@
+using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.IO;
 
 public static class FacebookImageService
 {
@@ -24,7 +24,9 @@ public static class FacebookImageService
         using var resultReader = new StreamReader(pictureStream);
         var result = resultReader.ReadToEnd();
         Console.WriteLine("facebook's response: " + result);
-        throw new Exception($"Picture download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"Picture download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }

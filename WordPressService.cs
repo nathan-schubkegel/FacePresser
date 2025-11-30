@@ -1,8 +1,8 @@
 using System;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -31,23 +31,33 @@ public static class WordPressService
     client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
     var request = new HttpRequestMessage(HttpMethod.Get, $"");
-    request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-      Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-      Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
-        
+    request.Headers.Authorization = new AuthenticationHeaderValue(
+      "Basic",
+      Convert.ToBase64String(
+        System.Text.ASCIIEncoding.ASCII.GetBytes(
+          Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+        )
+      )
+    );
+
     using HttpResponseMessage response = await client.SendAsync(request);
     string result = await response.Content.ReadAsStringAsync();
     if (response.IsSuccessStatusCode)
     {
-	  var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-	  var betterResult = jsonRes.ToString(Formatting.Indented);
+      var jsonRes = JsonConvert.DeserializeObject<JObject>(
+        result,
+        new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+      );
+      var betterResult = jsonRes.ToString(Formatting.Indented);
       Console.WriteLine("wordpress's response: " + betterResult);
       return betterResult;
     }
     else
     {
       Console.WriteLine("wordpress's response: " + result);
-      throw new Exception($"GetWpJson() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+      throw new Exception(
+        $"GetWpJson() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+      );
     }
   }
 
@@ -64,21 +74,33 @@ public static class WordPressService
       requestCount++;
       Console.WriteLine($"Asking wordpress for posts after {when.ToLocalTime()} (request {requestCount})...");
       var whenText = when.ToUniversalTime().ToString("o");
-      var request = new HttpRequestMessage(HttpMethod.Get, $"wp/v2/posts?orderby=date&context=edit&after={whenText}&offset={fetchedCount}&per_page=3");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      var request = new HttpRequestMessage(
+        HttpMethod.Get,
+        $"wp/v2/posts?orderby=date&context=edit&after={whenText}&offset={fetchedCount}&per_page=3"
+      );
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
       using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
         try
         {
-          var jsonRes = JsonConvert.DeserializeObject<JArray>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonRes = JsonConvert.DeserializeObject<JArray>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           fetchedCount += jsonRes.Count;
           Console.WriteLine($"Received {jsonRes.Count} posts.");
           //Console.WriteLine(jsonRes.ToString(Formatting.Indented));
-          if (jsonRes.Count == 0) break;
+          if (jsonRes.Count == 0)
+            break;
           foreach (var jsonPost in jsonRes)
           {
             var id = (string)jsonPost["id"];
@@ -86,7 +108,8 @@ public static class WordPressService
             string consoleLine = null;
             foreach (var line in content.GetLines())
             {
-              if (line.Trim() == "") continue;
+              if (line.Trim() == "")
+                continue;
               var match = Regex.Match(line, @"^\s*" + Regex.Escape("<!--") + @"(.*)" + Regex.Escape("-->") + @"\s*$");
               if (match.Success)
               {
@@ -94,15 +117,25 @@ public static class WordPressService
                 JObject metaJson;
                 try
                 {
-                  metaJson = JsonConvert.DeserializeObject<JObject>(metaText, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-                  posts.Add(new WordPressPost
-                  {
-                    WordPressPostId = id,
-                    WordPressRawContent = content,
-                    FacebookPostId = (string)metaJson["facebookPostId"] ?? throw new Exception("metaJson is missing facebookPostId"),
-                    FacebookPostCreatedTime = (string)metaJson["facebookPostCreatedTime"] ?? throw new Exception("metaJson is missing facebookPostCreatedTime"),
-                    FacebookPostUpdatedTime = (string)metaJson["facebookPostUpdatedTime"] ?? throw new Exception("metaJson is missing facebookPostUpdatedTime"),
-                  });
+                  metaJson = JsonConvert.DeserializeObject<JObject>(
+                    metaText,
+                    new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+                  );
+                  posts.Add(
+                    new WordPressPost
+                    {
+                      WordPressPostId = id,
+                      WordPressRawContent = content,
+                      FacebookPostId =
+                        (string)metaJson["facebookPostId"] ?? throw new Exception("metaJson is missing facebookPostId"),
+                      FacebookPostCreatedTime =
+                        (string)metaJson["facebookPostCreatedTime"]
+                        ?? throw new Exception("metaJson is missing facebookPostCreatedTime"),
+                      FacebookPostUpdatedTime =
+                        (string)metaJson["facebookPostUpdatedTime"]
+                        ?? throw new Exception("metaJson is missing facebookPostUpdatedTime"),
+                    }
+                  );
                   consoleLine = $"found with {metaText}";
                 }
                 catch (Exception ex)
@@ -110,11 +143,12 @@ public static class WordPressService
                   consoleLine = $"ignored because first line HTML comment caused " + ex.GetType() + ": " + ex.Message;
                 }
               }
-              else consoleLine = $"ignored because first line is not a HTML comment";
+              else
+                consoleLine = $"ignored because first line is not a HTML comment";
 
               break;
             }
-            
+
             consoleLine = "  Wordpress Post {id} " + (consoleLine ?? "ignored because it has no content");
             Console.WriteLine(consoleLine);
           }
@@ -128,17 +162,24 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"GetWordPressPostsAfterDateTime({whenText}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"GetWordPressPostsAfterDateTime({whenText}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
     if (posts.Select(x => x.WordPressPostId).Distinct().Count() != posts.Count)
     {
-       throw new Exception("Foiled by time and multiple requests!");
+      throw new Exception("Foiled by time and multiple requests!");
     }
     return posts;
   }
 
-  public static async Task<string> CreatePost(string name, DateTime postTime, List<string> contentLines, WordPressMediaItem featuredImage)
+  public static async Task<string> CreatePost(
+    string name,
+    DateTime postTime,
+    List<string> contentLines,
+    WordPressMediaItem featuredImage
+  )
   {
     Console.WriteLine($"Creating new wordpress post \"{name}\".");
     using (var client = new HttpClient())
@@ -146,30 +187,36 @@ public static class WordPressService
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
       var request = new HttpRequestMessage(HttpMethod.Post, $"wp/v2/posts");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
-        
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
+
       var bodyArgs = new JObject()
       {
-		["date_gmt"] = postTime.ToUniversalTime().ToString("o"),
-		["context"] = "edit",
-		["status"] = "publish",
-		["title"] = name,
+        ["date_gmt"] = postTime.ToUniversalTime().ToString("o"),
+        ["context"] = "edit",
+        ["status"] = "publish",
+        ["title"] = name,
         ["content"] = string.Join("\r\n", contentLines),
         ["comment_status"] = "closed",
       };
       if (featuredImage != null)
       {
         bodyArgs["featured_media"] = featuredImage.Id;
-	  }
-      
+      }
+
       var body = bodyArgs.ToString();
 
       Console.WriteLine("/////////////////////////////////////////////////////////");
       Console.WriteLine("////////////// New WordPress post content ///////////////");
       Console.WriteLine("/////////////////////////////////////////////////////////");
-      foreach (var line in contentLines) Console.WriteLine(line);
+      foreach (var line in contentLines)
+        Console.WriteLine(line);
 
       request.Content = new StringContent(body, Encoding.UTF8, "application/json");
       using HttpResponseMessage response = await client.SendAsync(request);
@@ -178,14 +225,17 @@ public static class WordPressService
       JObject jsonResult = null;
       try
       {
-        jsonResult = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
-	    betterResult = jsonResult.ToString(Formatting.Indented);
-	  }
-	  catch
-	  {
+        jsonResult = JsonConvert.DeserializeObject<JObject>(
+          result,
+          new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+        );
+        betterResult = jsonResult.ToString(Formatting.Indented);
+      }
+      catch
+      {
         betterResult = result;
-	  }
-      
+      }
+
       if (response.IsSuccessStatusCode)
       {
         Console.WriteLine("Wordpress post content successfully posted");
@@ -195,11 +245,13 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + betterResult);
-        throw new Exception($"CreatePost({name}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"CreatePost({name}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
-  
+
   // public static async Task OverwriteExistingPost(string postId, string name, List<string> contentLines, byte[] featuredImage)
 
   public static async Task<List<string>> GetPageContent(string pageId)
@@ -210,20 +262,29 @@ public static class WordPressService
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
       var request = new HttpRequestMessage(HttpMethod.Get, $"wp/v2/pages/{pageId}?context=edit");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
       using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
         try
         {
-          var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonRes = JsonConvert.DeserializeObject<JObject>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           var content = (string)jsonRes["content"]["raw"];
           var lines = content.GetLines();
           Console.WriteLine("wordpress's response (page content only):" + (lines.Count == 0 ? " (0 lines)" : ""));
-          foreach (var line in lines) Console.WriteLine(line);
+          foreach (var line in lines)
+            Console.WriteLine(line);
           return lines;
         }
         catch
@@ -235,11 +296,13 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"GetPageContent({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"GetPageContent({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
-  
+
   public static async Task SetPageContent(string pageId, List<string> newContent)
   {
     Console.WriteLine($"Posting new page content to wordpress.");
@@ -248,19 +311,22 @@ public static class WordPressService
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
       var request = new HttpRequestMessage(HttpMethod.Post, $"wp/v2/pages/{pageId}");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
-        
-      var body = new JObject()
-      {
-        ["content"] = string.Join("\r\n", newContent)
-      }.ToString();
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
+
+      var body = new JObject() { ["content"] = string.Join("\r\n", newContent) }.ToString();
 
       Console.WriteLine("/////////////////////////////////////////////////////////");
       Console.WriteLine("////////////// New WordPress page content ///////////////");
       Console.WriteLine("/////////////////////////////////////////////////////////");
-      foreach (var line in newContent) Console.WriteLine(line);
+      foreach (var line in newContent)
+        Console.WriteLine(line);
 
       request.Content = new StringContent(body, Encoding.UTF8, "application/json");
       using HttpResponseMessage response = await client.SendAsync(request);
@@ -272,7 +338,9 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"SetPageContent({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"SetPageContent({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
@@ -285,10 +353,18 @@ public static class WordPressService
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
       // FUTURE: use pagination to search all items, so we 100% know we're finding them all
-      var request = new HttpRequestMessage(HttpMethod.Get, $"wp/v2/media?context=edit&per_page=100&search={ System.Net.WebUtility.UrlEncode(search) }");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      var request = new HttpRequestMessage(
+        HttpMethod.Get,
+        $"wp/v2/media?context=edit&per_page=100&search={System.Net.WebUtility.UrlEncode(search)}"
+      );
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
       using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
@@ -296,16 +372,24 @@ public static class WordPressService
         try
         {
           var items = new List<WordPressMediaItem>();
-          var jsonArray = JsonConvert.DeserializeObject<JArray>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonArray = JsonConvert.DeserializeObject<JArray>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           foreach (var jsonItem in jsonArray)
           {
             var id = (string)jsonItem["id"];
             var url = (string)jsonItem["source_url"];
-            if (id == null || url == null) continue; // skip this one, brother
+            if (id == null || url == null)
+              continue; // skip this one, brother
             items.Add(new WordPressMediaItem { Id = id, Url = url });
           }
-          Console.WriteLine($"wordpress's response ({items.Count} of {jsonArray.Count} media items only):" + (items.Count == 0 ? " (0 items)" : ""));
-          foreach (var item in items) Console.WriteLine(JsonConvert.SerializeObject(item, Formatting.Indented));
+          Console.WriteLine(
+            $"wordpress's response ({items.Count} of {jsonArray.Count} media items only):"
+              + (items.Count == 0 ? " (0 items)" : "")
+          );
+          foreach (var item in items)
+            Console.WriteLine(JsonConvert.SerializeObject(item, Formatting.Indented));
           return items;
         }
         catch
@@ -317,7 +401,9 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"FindMediaItems({search}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"FindMediaItems({search}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
@@ -337,7 +423,7 @@ public static class WordPressService
         break;
       }
     }
-    
+
     // delete every non-matching wordpress image
     foreach (var item in existingItems.Where(x => x != matchingItem))
     {
@@ -364,9 +450,12 @@ public static class WordPressService
     }
     catch (Exception ex)
     {
-      throw new Exception($"Unable to upload new media item to wordpress because it is not a recognized image type", ex);
+      throw new Exception(
+        $"Unable to upload new media item to wordpress because it is not a recognized image type",
+        ex
+      );
     }
-    
+
     string fileName;
     try
     {
@@ -374,7 +463,10 @@ public static class WordPressService
     }
     catch (Exception ex)
     {
-      throw new Exception($"Unable to upload new media item to wordpress because a filename could not be determined", ex);
+      throw new Exception(
+        $"Unable to upload new media item to wordpress because a filename could not be determined",
+        ex
+      );
     }
 
     Console.WriteLine($"Uploading new WordPress media item named {fileName}");
@@ -383,9 +475,14 @@ public static class WordPressService
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
 
       var request = new HttpRequestMessage(HttpMethod.Post, $"wp/v2/media");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
       var content = new ByteArrayContent(fileContent);
       content.Headers.Remove("Content-Type");
       content.Headers.Add("Content-Type", mimeType);
@@ -397,12 +494,18 @@ public static class WordPressService
       {
         try
         {
-          var jsonItem = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonItem = JsonConvert.DeserializeObject<JObject>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           var id = (string)jsonItem["id"];
           var url = (string)jsonItem["source_url"];
-          if (id == null || url == null) throw new Exception("Invalid response id or url");
+          if (id == null || url == null)
+            throw new Exception("Invalid response id or url");
           var item = new WordPressMediaItem { Id = id, Url = url };
-          Console.WriteLine("wordpress's response (media item only): " + JsonConvert.SerializeObject(item, Formatting.Indented));
+          Console.WriteLine(
+            "wordpress's response (media item only): " + JsonConvert.SerializeObject(item, Formatting.Indented)
+          );
           return item;
         }
         catch (Exception ex)
@@ -414,11 +517,13 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"UploadMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"UploadMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
-  
+
   public static async Task<byte[]> DownloadMediaItem(WordPressMediaItem mediaItem)
   {
     Console.WriteLine("Downloading media item from wordpress at " + mediaItem.Url);
@@ -439,11 +544,13 @@ public static class WordPressService
         using var resultReader = new StreamReader(pictureStream);
         var result = resultReader.ReadToEnd();
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"Media item download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"Media item download request failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
-  
+
   public static async Task DeleteMediaItem(WordPressMediaItem mediaItem)
   {
     Console.WriteLine("Deleting media item " + mediaItem.Id + " from wordpress at " + mediaItem.Url);
@@ -451,18 +558,26 @@ public static class WordPressService
     using (var client = new HttpClient())
     {
       client.BaseAddress = new Uri($"https://{Constants.WordPressSite}/wp-json/");
-      
+
       var request = new HttpRequestMessage(HttpMethod.Delete, $"wp/v2/media/{mediaItem.Id}?force=true");
-      request.Headers.Authorization = new AuthenticationHeaderValue("Basic",
-        Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(
-        Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword)));
+      request.Headers.Authorization = new AuthenticationHeaderValue(
+        "Basic",
+        Convert.ToBase64String(
+          System.Text.ASCIIEncoding.ASCII.GetBytes(
+            Constants.WordPressAuthUsername + ":" + Constants.WordPressAuthPassword
+          )
+        )
+      );
       using HttpResponseMessage response = await client.SendAsync(request);
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
         try
         {
-          var jsonItem = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonItem = JsonConvert.DeserializeObject<JObject>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           if (!(bool)jsonItem["deleted"])
           {
             throw new Exception("media item was not deleted");
@@ -477,7 +592,9 @@ public static class WordPressService
       else
       {
         Console.WriteLine("wordpress's response: " + result);
-        throw new Exception($"DeleteMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"DeleteMediaItem() failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }

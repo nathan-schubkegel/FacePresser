@@ -26,7 +26,7 @@ public class FacebookPageAccount
 public class FacebookPageService
 {
   private string _userAccessToken;
-  
+
   public FacebookPageService(string userAccessToken)
   {
     _userAccessToken = userAccessToken;
@@ -44,17 +44,28 @@ public class FacebookPageService
       {
         try
         {
-          var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonRes = JsonConvert.DeserializeObject<JObject>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           var results = new List<FacebookPageAccount>();
           foreach (var post in jsonRes["data"])
           {
             string accessToken = post["access_token"].ToString();
             string name = post["name"].ToString();
             string id = post["id"].ToString();
-            results.Add( new FacebookPageAccount { PageAccessToken = accessToken, PageId = id, PageName = name } );
+            results.Add(
+              new FacebookPageAccount
+              {
+                PageAccessToken = accessToken,
+                PageId = id,
+                PageName = name,
+              }
+            );
           }
           Console.WriteLine("facebook's response (account info only):" + (results.Count == 0 ? " (0 accounts)" : ""));
-          foreach (var thing in results) Console.WriteLine(JsonConvert.SerializeObject(thing, Formatting.Indented));
+          foreach (var thing in results)
+            Console.WriteLine(JsonConvert.SerializeObject(thing, Formatting.Indented));
           return results;
         }
         catch
@@ -67,7 +78,9 @@ public class FacebookPageService
       {
         Console.WriteLine("facebook's response: " + result);
         HandleInvalidAccessTokenResult(result);
-        throw new Exception($"GetPagesOfUser({userId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"GetPagesOfUser({userId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
@@ -80,33 +93,49 @@ public class FacebookPageService
       client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
 
       // TODO: perform paginated requests until a satisfactory post is found
-      using HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,created_time,updated_time,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
+      using HttpResponseMessage response = await client.GetAsync(
+        $"{pageId}/posts?limit=5&fields=id,from,created_time,updated_time,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}"
+      );
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
         try
         {
-          var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+          var jsonRes = JsonConvert.DeserializeObject<JObject>(
+            result,
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+          );
           foreach (var post in jsonRes["data"])
           {
-            if ((bool?)post["is_expired"] == true || (bool?)post["is_hidden"] == true) continue;
-            
-            if ((bool?)post["is_published"] == false) continue;
-            
+            if ((bool?)post["is_expired"] == true || (bool?)post["is_hidden"] == true)
+              continue;
+
+            if ((bool?)post["is_published"] == false)
+              continue;
+
             var pagePost = new FacebookPagePost
-            { 
+            {
               Id = post["id"]?.ToString(),
               FromId = post["from"]["id"]?.ToString(),
               FromName = post["from"]["name"]?.ToString(),
               Message = post["message"]?.ToString(),
               FullPictureUrl = post["full_picture"]?.ToString(),
-              CreatedTime = (ulong.TryParse(post["created_time"]?.ToString(), out var unixCreatedTime)
-                ? UnixTimestampToDateTime(unixCreatedTime) : DateTime.Parse(post["created_time"]?.ToString())).ToUniversalTime(),
-              UpdatedTime = (ulong.TryParse(post["updated_time"]?.ToString(), out var unixUpdatedTime)
-                ? UnixTimestampToDateTime(unixUpdatedTime) : DateTime.Parse(post["updated_time"]?.ToString())).ToUniversalTime(),
+              CreatedTime = (
+                ulong.TryParse(post["created_time"]?.ToString(), out var unixCreatedTime)
+                  ? UnixTimestampToDateTime(unixCreatedTime)
+                  : DateTime.Parse(post["created_time"]?.ToString())
+              ).ToUniversalTime(),
+              UpdatedTime = (
+                ulong.TryParse(post["updated_time"]?.ToString(), out var unixUpdatedTime)
+                  ? UnixTimestampToDateTime(unixUpdatedTime)
+                  : DateTime.Parse(post["updated_time"]?.ToString())
+              ).ToUniversalTime(),
             };
 
-            Console.WriteLine("facebook's response (found page post only): " + JsonConvert.SerializeObject(pagePost, Formatting.Indented));
+            Console.WriteLine(
+              "facebook's response (found page post only): "
+                + JsonConvert.SerializeObject(pagePost, Formatting.Indented)
+            );
             return pagePost;
           }
           throw new Exception("Didn't find any usable posts");
@@ -121,16 +150,18 @@ public class FacebookPageService
       {
         Console.WriteLine("facebook's response: " + result);
         HandleInvalidAccessTokenResult(result);
-        throw new Exception($"GetMostRecentPostOnPage({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}");
+        throw new Exception(
+          $"GetMostRecentPostOnPage({pageId}) failed with response {(int)response.StatusCode} ({response.StatusCode}) {response.ReasonPhrase}"
+        );
       }
     }
   }
-  
-  public static DateTime UnixTimestampToDateTime( ulong unixTimeStamp )
+
+  public static DateTime UnixTimestampToDateTime(ulong unixTimeStamp)
   {
     // Unix timestamp is seconds past epoch
     DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-    dateTime = dateTime.AddSeconds( unixTimeStamp ); //.ToLocalTime();
+    dateTime = dateTime.AddSeconds(unixTimeStamp); //.ToLocalTime();
     return dateTime;
   }
 
@@ -145,8 +176,10 @@ public class FacebookPageService
     var pageAccount = pageAccounts.FirstOrDefault(a => a.PageName == Constants.FacebookPageName);
     if (pageAccount == null)
     {
-      throw new Exception($"FacebookPageName=\"{Constants.FacebookPageName}\" was specified in " +
-        $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name.");
+      throw new Exception(
+        $"FacebookPageName=\"{Constants.FacebookPageName}\" was specified in "
+          + $"{Constants.ConstantsFileName} but the facebook user does not have admin access to any page by that name."
+      );
     }
 
     // get the most recent post
@@ -158,15 +191,16 @@ public class FacebookPageService
   {
     try
     {
-      var jsonRes = JsonConvert.DeserializeObject<JObject>(result, new JsonSerializerSettings { DateParseHandling = DateParseHandling.None });
+      var jsonRes = JsonConvert.DeserializeObject<JObject>(
+        result,
+        new JsonSerializerSettings { DateParseHandling = DateParseHandling.None }
+      );
       var errorType = (string)jsonRes["error"]?["type"];
       if (errorType == "OAuthException")
       {
         FacebookUserAccessTokenService.DeleteCachedUserAccessToken();
       }
     }
-    catch
-    {
-    }
+    catch { }
   }
 }
