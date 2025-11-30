@@ -8,3 +8,4 @@ private_resource_*
 # winmerge/kdiff backup files
 *.bak
 *.orig
+.vs/
