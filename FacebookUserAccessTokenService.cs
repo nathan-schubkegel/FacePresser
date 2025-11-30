@@ -1,3 +1,9 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -143,12 +149,10 @@ public static class FacebookUserAccessTokenService
       Console.WriteLine(
         "Launching a firefox window and waiting up to 5 minutes for the user give app permission in facebook..."
       );
-      using (
-        var p = System.Diagnostics.Process.Start(
-          Constants.BrowserExePath,
-          string.Format(Constants.BrowserExeArgs, loginUrl)
-        )
-      ) { }
+      using var p = System.Diagnostics.Process.Start(
+        Constants.BrowserExePath,
+        string.Format(Constants.BrowserExeArgs, loginUrl)
+      );
       var accessToken = await userAccessToken.Task;
       Console.WriteLine("h'okay, we have user access token " + accessToken);
       return accessToken;

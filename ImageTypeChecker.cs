@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 public static class ImageTypeChecker
 {
   private static readonly Dictionary<string, byte[]> _imageHeaders = new Dictionary<string, byte[]>

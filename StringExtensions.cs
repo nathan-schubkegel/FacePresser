@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+
 public static class StringExtensions
 {
   public static List<string> GetLines(this string data)

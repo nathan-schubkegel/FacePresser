@@ -23,36 +23,25 @@ public class CertificateUtil
       System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
     )
     {
-      using (
-        var rsa = new RSACryptoServiceProvider(
-          4096,
-          new CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider", Guid.NewGuid().ToString())
-        )
-      )
-      {
-        // this means this key will be deleted on Dispose / finalization
-        rsa.PersistKeyInCsp = false;
+      using var rsa = new RSACryptoServiceProvider(
+        4096,
+        new CspParameters(24, "Microsoft Enhanced RSA and AES Cryptographic Provider", Guid.NewGuid().ToString())
+      );
 
-        var request = new CertificateRequest(
-          distinguishedName,
-          rsa,
-          HashAlgorithmName.SHA256,
-          RSASignaturePadding.Pkcs1
-        );
+      // this means this key will be deleted on Dispose / finalization
+      rsa.PersistKeyInCsp = false;
 
-        using (
-          var certificate = request.CreateSelfSigned(
-            new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
-            new DateTimeOffset(DateTime.UtcNow.AddDays(3650))
-          )
-        )
-        {
-          File.WriteAllBytes(
-            Constants.FacebookLoginRedirectCertFilePath,
-            certificate.Export(X509ContentType.Pkcs12, Constants.FacebookLoginRedirectCertPassword)
-          );
-        }
-      }
+      var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+      using var certificate = request.CreateSelfSigned(
+        new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
+        new DateTimeOffset(DateTime.UtcNow.AddDays(3650))
+      );
+
+      File.WriteAllBytes(
+        Constants.FacebookLoginRedirectCertFilePath,
+        certificate.Export(X509ContentType.Pkcs12, Constants.FacebookLoginRedirectCertPassword)
+      );
     }
     else // linux
     {

@@ -1,3 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -65,16 +71,10 @@ public static class Program
             );
           }
         }
+
         if (wordpressPost == null)
         {
           Console.WriteLine("No matching existing Wordpress post was found.");
-        }
-
-        // do nothing if it already represents this facebook post
-        // (technically can happen when the application starts up)
-        if (wordpressPost == null)
-        {
-          // the previous Console.WriteLine explains this scenario
         }
         else if (wordpressPost.FacebookPostCreatedTime != facebookPost.CreatedTime.ToString("o"))
         {
@@ -90,12 +90,11 @@ public static class Program
         }
         else
         {
+          // do nothing if the wordpress post already represents this facebook post
+          // (technically can happen when the application starts up)
           Console.WriteLine("Done - the latest facebook post already matches a corresponding wordpress post");
           goto sleepy_time;
         }
-
-        string postName = "Posted " + facebookPost.CreatedTime.ToString("MMMM d, yyyy");
-        var postContent = DetermineNewWordPressPostContent(facebookPost);
 
         // some facebook posts have an image; upload that to wordpress first
         WordPressMediaItem featuredImage = null;
@@ -107,26 +106,15 @@ public static class Program
           featuredImage = await WordPressService.EnsureImageIsUploaded(facebookImageContent, facebookPost.Id);
         }
 
-        if (wordpressPost == null)
-        {
-          Console.WriteLine("Found no WordPress post matching this facebook post... going to create one.");
-          var postId = await WordPressService.CreatePost(
-            postName,
-            facebookPost.CreatedTime,
-            postContent,
-            featuredImage
-          );
-          Console.WriteLine($"WordPress post {postId} created successfully!");
-        }
-        else
-        {
-          Console.WriteLine(
-            $"Found WordPress post {wordpressPost.WordPressPostId} matching this facebook post, but it needs to be updated."
-          );
-          //await WordPressService.UpdatePost(wordpressPost.WordPressPostId, postName, postContent, featuredImage);
-          Console.WriteLine($"WordPress post {wordpressPost.WordPressPostId} updated successfully!");
-          Console.WriteLine("j/k - i haven't written this function yet");
-        }
+        var postName = "Posted " + facebookPost.CreatedTime.ToString("MMMM d, yyyy");
+        var postContent = DetermineNewWordPressPostContent(facebookPost);
+        await WordPressService.CreateOrUpdatePost(
+          wordpressPost?.WordPressPostId,
+          postName,
+          facebookPost.CreatedTime,
+          postContent,
+          featuredImage
+        );
 
         lastRepostedFacebookPost = facebookPost;
       }
@@ -158,11 +146,35 @@ public static class Program
     // add the most recent post
     foreach (var line in facebookPost.Message.GetLines().Select(x => x.Trim()).Where(x => x != ""))
     {
+      // Try to make URLs look like hyperlinks
+      StringBuilder reconstitutedLine = new();
+      var words = line.Split(' ');
+      bool first = true;
+      foreach (var word in words)
+      {
+        if (!first)
+        {
+          reconstitutedLine.Append(' ');
+        }
+        first = false;
+
+        if (word.StartsWith("https://"))
+        {
+          reconstitutedLine.Append(
+            $"<a href=\"{word}\" target=\"_blank\" rel=\"noreferrer noopener\">{HttpUtility.HtmlEncode(word)}</a>"
+          );
+        }
+        else
+        {
+          reconstitutedLine.Append(word);
+        }
+      }
+
       pageContent.AddRange(
         new[]
         {
           @"<!-- wp:paragraph -->",
-          @"<p>" + HttpUtility.HtmlEncode(line) + @"</p>",
+          @"<p>" + reconstitutedLine.ToString() + @"</p>",
           @"<!-- /wp:paragraph -->",
           @"",
         }
