@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Web;
 
@@ -8,7 +8,10 @@ public static class Program
   {
     long loopNumber = 0;
     Random rnd = new Random();
-    RepostedMessage lastRepostedMessage = null;
+    FacebookPagePost lastRepostedFacebookPost = null;
+    
+    //await WordPressService.GetWpJson();
+    //return;
 
     while (true)
     {
@@ -18,45 +21,103 @@ public static class Program
       Console.WriteLine("Loop #" + ++loopNumber);
       try
       {
-        lastRepostedMessage ??= RepostedMessage.Load();
-
-        var (facebookMessage, facebookPictureUrl) = await FacebookPageService.GetLatestFacebookPostAsync();
-
-        if (lastRepostedMessage.IsSameAs(facebookMessage, facebookPictureUrl))
+        // get latest facebook post
+        var facebookPost = await FacebookPageService.GetLatestFacebookPostAsync();
+        if (facebookPost == null)
         {
-          Console.WriteLine("Done - the latest facebook post has already been uploaded to the wordpress site");
+          Console.WriteLine("Done - no facebook post found");
+          goto sleepy_time;
+        }
+        
+        // do nothing if it's the same as last time we checked
+        if (lastRepostedFacebookPost != null &&
+            lastRepostedFacebookPost.Id == facebookPost.Id &&
+            lastRepostedFacebookPost.CreatedTime == facebookPost.CreatedTime &&
+            lastRepostedFacebookPost.UpdatedTime == facebookPost.UpdatedTime)
+        {
+          Console.WriteLine("Done - the latest facebook post hasn't changed");
+          goto sleepy_time;
+        }
+
+        // get the wordpress post that was made for this facebook post, if it exists
+        List<WordPressPost> candidatePosts = await WordPressService.GetWordPressPostsAfterDateTime(facebookPost.CreatedTime.Subtract(TimeSpan.FromSeconds(1)));
+        Console.WriteLine("Checking existing WordPress posts for one that claims to be associated with facebook post " + facebookPost.Id);
+        WordPressPost wordpressPost = null;
+        foreach (var candidatePost in candidatePosts)
+        {
+		  if (candidatePost.FacebookPostId == facebookPost.Id)
+		  {
+			Console.WriteLine($"Wordpress post {candidatePost.WordPressPostId} matches exactly.");
+			wordpressPost = candidatePost;
+			break;
+		  }
+		  else
+		  {
+	        Console.WriteLine("Wordpress post {candidatePost.WordPressPostId} does not match - it uses facebook post " + candidatePost.FacebookPostId);
+		  }
+		}
+		if (wordpressPost == null)
+		{
+		  Console.WriteLine("No matching existing Wordpress post was found.");
+		}
+
+        // do nothing if it already represents this facebook post
+        // (technically can happen when the application starts up)
+        if (wordpressPost == null)
+        {
+		  // the previous Console.WriteLine explains this scenario
+		}
+        else if (wordpressPost.FacebookPostCreatedTime != facebookPost.CreatedTime.ToString("o"))
+        {
+		  Console.WriteLine("The matching wordpress post has different CreatedTime than the facebook post");
+		  Console.WriteLine("  Facebook created time =  " + facebookPost.CreatedTime.ToString("o"));
+		  Console.WriteLine("  Wordpress created time = " + wordpressPost.FacebookPostCreatedTime);
+		}
+		else if (wordpressPost.FacebookPostUpdatedTime != facebookPost.UpdatedTime.ToString("o"))
+        {
+		  Console.WriteLine("The matching wordpress post has different UpdatedTime than the facebook post");
+		  Console.WriteLine("  Facebook updated time =  " + facebookPost.UpdatedTime.ToString("o"));
+		  Console.WriteLine("  Wordpress updated time = " + wordpressPost.FacebookPostUpdatedTime);
         }
         else
         {
-          // get wordpress page content
-          var pageContent = await WordPressService.GetPageContent();
-
-          // determine the new page content
-          // (so if this step is going to fail, it happens before anything is uploaded!)
-          DetermineNewPageMessageContent(pageContent, facebookMessage);
-
-          // Some facebook posts have an image
-          if (!string.IsNullOrEmpty(facebookPictureUrl))
-          {
-            byte[] facebookImageContent = await FacebookImageCachingService.GetImageAsync(facebookPictureUrl);
-
-            var wpMediaItem = await WordPressService.EnsureImageIsUploaded(facebookImageContent);
-            DetermineNewPageImageContent(pageContent, wpMediaItem);
-          }
-
-          // upload the new page content to wordpress
-          await WordPressService.SetPageContent(pageContent);
-
-          // locally record info about the facebook post
-          // (so the next loop iteration can avoid doing anything until facebook's latest post changes)
-          lastRepostedMessage.Save(facebookMessage, facebookPictureUrl);
+          Console.WriteLine("Done - the latest facebook post already matches a corresponding wordpress post");
+          goto sleepy_time;
+		}
+        
+        string postName = "Posted " + facebookPost.CreatedTime.ToString("MMMM d, yyyy");
+        var postContent = DetermineNewWordPressPostContent(facebookPost);
+        
+        // some facebook posts have an image; upload that to wordpress first
+        WordPressMediaItem featuredImage = null;
+        if (!string.IsNullOrEmpty(facebookPost.FullPictureUrl))
+        {
+          byte[] facebookImageContent = await FacebookImageService.DownloadFacebookImageAsync(facebookPost.FullPictureUrl);
+          featuredImage = await WordPressService.EnsureImageIsUploaded(facebookImageContent, facebookPost.Id);
         }
+        
+        if (wordpressPost == null)
+        {
+		  Console.WriteLine("Found no WordPress post matching this facebook post... going to create one.");
+          var postId = await WordPressService.CreatePost(postName, facebookPost.CreatedTime, postContent, featuredImage);
+          Console.WriteLine($"WordPress post {postId} created successfully!");
+		}
+		else
+		{
+		  Console.WriteLine($"Found WordPress post {wordpressPost.WordPressPostId} matching this facebook post, but it needs to be updated.");
+		  //await WordPressService.UpdatePost(wordpressPost.WordPressPostId, postName, postContent, featuredImage);
+		  Console.WriteLine($"WordPress post {wordpressPost.WordPressPostId} updated successfully!");
+		  Console.WriteLine("j/k - i haven't written this function yet");
+		}
+
+		lastRepostedFacebookPost = facebookPost;
       }
       catch (Exception ex)
       {
         Console.WriteLine("Unhandled " + ex.ToString());
       }
 
+sleepy_time:
       int minutes = rnd.Next(1, 6);  // creates a number between 1 and 5
       int seconds = rnd.Next(0, 60); // creates a number between 0 and 59
       Console.WriteLine(DateTime.Now.ToString());
@@ -65,68 +126,47 @@ public static class Program
     }
   }
 
-  private static void DetermineNewPageMessageContent(List<string> pageContent, string facebookMessage)
+  private static List<string> DetermineNewWordPressPostContent(FacebookPagePost facebookPost)
   {
-    var startOfContent = new List<string>
+    List<string> pageContent = new();
+    JObject meta = new JObject
     {
-      @"<!-- wp:heading -->",
-      @"<h2 class="""">" + Constants.WordPressPageHeadingTextWhereReplacementStarts + @"</h2>",
-      @"<!-- /wp:heading -->",
-      @"",
+      ["facebookPostId"] = facebookPost.Id,
+      ["facebookPostCreatedTime"] = facebookPost.CreatedTime.ToString("o"),
+      ["facebookPostUpdatedTime"] = facebookPost.UpdatedTime.ToString("o"),
     };
-
-    var startIndex = -1;
-    for (int i = 0; i < pageContent.Count; i++)
-    {
-      if (pageContent.Skip(i).Take(startOfContent.Count).SequenceEqual(startOfContent))
-      {
-        startIndex = i;
-        break;
-      }
-    }
-    if (startIndex == -1)
-    {
-      throw new Exception("Unable to find WordPressPageHeadingTextWhereReplacementStarts in wordpress page content. Was looking for: " +
-        string.Join("\r\n", startOfContent));
-    }
-    pageContent.RemoveRange(startIndex, pageContent.Count - startIndex);
-
-    pageContent.AddRange(startOfContent);
-
-    pageContent.AddRange(new []
-    {
-      @"<!-- wp:paragraph -->",
-      @"<p class="""">(Last updated " + HttpUtility.HtmlEncode(DateTime.Now.ToString("M/d/yyyy 'at' h:mmtt") + " " + TimeZoneInfo.Local.StandardName) + @")</p>",
-      @"<!-- /wp:paragraph -->",
-      @"",
-    });
+    pageContent.Add(@"<!-- " + meta.ToString(Formatting.None) + @" -->");
 
     // add the most recent post
-    foreach (var line in facebookMessage.GetLines().Select(x => x.Trim()).Where(x => x != ""))
+    foreach (var line in facebookPost.Message.GetLines().Select(x => x.Trim()).Where(x => x != ""))
     {
       pageContent.AddRange(new[]{
         @"<!-- wp:paragraph -->",
-        @"<p class="""">" + HttpUtility.HtmlEncode(line) + @"</p>",
+        @"<p>" + HttpUtility.HtmlEncode(line) + @"</p>",
         @"<!-- /wp:paragraph -->",
         @"",
       });
     }
 
-    // add the footer content
-    pageContent.AddRange(new[]{
+    // add the footer content, if it's populated
+    if (!string.IsNullOrWhiteSpace(Constants.WordPressPageFooter))
+    {
+      pageContent.AddRange(new[]{
+        @"<!-- wp:paragraph -->",
+        @"<p>" + Constants.WordPressPageFooter + @"</p>",
+        @"<!-- /wp:paragraph -->",
+        @""});
+    }
+    
+    // add the "last updated" disclaimer at the end
+    pageContent.AddRange(new []
+    {
       @"<!-- wp:paragraph -->",
-      @"<p class="""">" + Constants.WordPressPageFooter + @"</p>",
+      @"<p>(Last updated " + HttpUtility.HtmlEncode(facebookPost.UpdatedTime.ToLocalTime().ToString("M/d/yyyy 'at' h:mmtt") + " " + TimeZoneInfo.Local.StandardName) + @")</p>",
       @"<!-- /wp:paragraph -->",
-      @""});
-  }
-
-  private static void DetermineNewPageImageContent(List<string> pageContent, WordPressMediaItem mediaItem)
-  {
-    pageContent.AddRange(new[]{
-      @"<!-- wp:image {""id"":" + mediaItem.Id + @",""sizeSlug"":""full"",""linkDestination"":""none""} -->",
-      @"<figure class=""wp-block-image size-full""><img src=""" + mediaItem.Url + @""" alt="""" class=""wp-image-" + mediaItem.Id + @"""/></figure>",
-      @"<!-- /wp:image -->",
       @"",
     });
+    
+    return pageContent;
   }
 }

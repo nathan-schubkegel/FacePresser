@@ -12,9 +12,24 @@ public class Constants
     {
       return (string)constants[name] ?? throw new Exception(string.Format("missing {0} from {1}", name, ConstantsFileName));
     }
+
     FacebookAppId = GetConstant("FacebookAppId");
+    if (string.IsNullOrEmpty(FacebookAppId.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(FacebookAppId)}");
+    }
+    
     FacebookAppSecret = GetConstant("FacebookAppSecret");
+    if (string.IsNullOrEmpty(FacebookAppSecret.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(FacebookAppSecret)}");
+    }
+    
     FacebookPageName = GetConstant("FacebookPageName");
+    if (string.IsNullOrEmpty(FacebookPageName.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(FacebookPageName)}");
+    }
 
     FacebookLoginRedirectCertFilePath = GetConstant("FacebookLoginRedirectCertFilePath");
     if (string.IsNullOrEmpty(FacebookLoginRedirectCertFilePath)) FacebookLoginRedirectCertFilePath = "private_resource_self_signed_cert.pfx";
@@ -28,19 +43,33 @@ public class Constants
     }
 
     BrowserExePath = GetConstant("BrowserExePath");
-    BrowserExeArgs = GetConstant("BrowserExeArgs");
-    WordPressAuthUsername = GetConstant("WordPressAuthUsername");
-    WordPressAuthPassword = GetConstant("WordPressAuthPassword");
-    WordPressSite = GetConstant("WordPressSite");
-    WordPressPageId = GetConstant("WordPressPageId");
-    
-    WordPressPageHeadingTextWhereReplacementStarts = GetConstant("WordPressPageHeadingTextWhereReplacementStarts");
-    if (string.IsNullOrEmpty(WordPressPageHeadingTextWhereReplacementStarts.Trim()))
+    if (string.IsNullOrEmpty(BrowserExePath.Trim()))
     {
-      throw new Exception($"invalid empty or whitespace {nameof(WordPressPageHeadingTextWhereReplacementStarts)}");
+      throw new Exception($"invalid empty or whitespace {nameof(BrowserExePath)}");
     }
-
+    
+    BrowserExeArgs = GetConstant("BrowserExeArgs");
+    
+    WordPressAuthUsername = GetConstant("WordPressAuthUsername");
+    if (string.IsNullOrEmpty(WordPressAuthUsername.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(WordPressAuthUsername)}");
+    }
+    
+    WordPressAuthPassword = GetConstant("WordPressAuthPassword");
+    if (string.IsNullOrEmpty(WordPressAuthPassword.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(WordPressAuthPassword)}");
+    }
+    
+    WordPressSite = GetConstant("WordPressSite");
+    if (string.IsNullOrEmpty(WordPressSite.Trim()))
+    {
+      throw new Exception($"invalid empty or whitespace {nameof(WordPressSite)}");
+    }
+    
     WordPressPageFooter = GetConstant("WordPressPageFooter");
+    
     WordPressPageImageNamePattern = GetConstant("WordPressPageImageNamePattern");
     if (string.IsNullOrEmpty(WordPressPageImageNamePattern.Trim()))
     {
@@ -56,15 +85,11 @@ public class Constants
   public static readonly string FacebookLoginRedirectCertPassword;
   public static readonly int    FacebookLoginRedirectListeningPort;
   public static readonly string FacebookUserAccessTokenFileName = "private_resource_user_access_token.json";
-  public static readonly string FacebookImageCacheFileName = "private_resource_last_downloaded_facebook_image.json";
-  public static readonly string LastRepostedMessageFileName = "private_resource_last_reposted_message.json";
   public static readonly string BrowserExePath;
   public static readonly string BrowserExeArgs;
   public static readonly string WordPressAuthUsername;
   public static readonly string WordPressAuthPassword;
   public static readonly string WordPressSite;
-  public static readonly string WordPressPageId;
-  public static readonly string WordPressPageHeadingTextWhereReplacementStarts;
   public static readonly string WordPressPageFooter;
   public static readonly string WordPressPageImageNamePattern;
 }

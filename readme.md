@@ -31,11 +31,7 @@ You need to create a `private_resource_constants.json` file in the app's working
       "WordPressAuthUsername": "JoeCool", // your wordpress account user name
       "WordPressAuthPassword": "afev aJbY vrK4 S3Yn fF3R 6cLE", // application password; must be set up in wordpress
       "WordPressSite": "yourSite.org", // everything before https://
-      "WordPressPageId": "43", // the id field from /wp-json/wp/v2/pages or the "post" argument when you edit the page, i.e. /wp-admin/post.php?post=43&action=edit
-      "WordPressPageHeadingTextWhereReplacementStarts": "Latest Status", // your wordpress page must have a "Heading" block containing this text;
-                                                                         // all content from this block down will be replaced by this program
-
-      "WordPressPageFooter": "This is <b>HTML text</b> that will show up after the scraped post message content, in a paragraph block.",
+      "WordPressPageFooter": "This is optional <b>HTML text</b> that will show up after the scraped post message content, in a paragraph block.",
       "WordPressPageImageNamePattern": "FacePresserAutoUploadedImage", // This text will be used in the wordpress uploaded image filename.
                                                                        // All other wordpress media items matching this text will be deleted!
     }

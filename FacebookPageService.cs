@@ -9,7 +9,11 @@ public class FacebookPagePost
   public string FromId; // who posted it
   public string FromName; // who posted it
   public string Message;
-  public string FullPicture;
+  public string FullPictureUrl;
+  public DateTime CreatedTime;
+  public string CreatedTimeText => CreatedTime.ToString("o");
+  public DateTime UpdatedTime;
+  public string UpdatedTimeText => UpdatedTime.ToString("o");
 }
 
 public class FacebookPageAccount
@@ -76,7 +80,7 @@ public class FacebookPageService
       client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
 
       // TODO: perform paginated requests until a satisfactory post is found
-      using HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
+      using HttpResponseMessage response = await client.GetAsync($"{pageId}/posts?limit=5&fields=id,from,created_time,updated_time,is_expired,is_hidden,is_published,message,full_picture&access_token={pageAccessToken}");
       string result = await response.Content.ReadAsStringAsync();
       if (response.IsSuccessStatusCode)
       {
@@ -95,7 +99,11 @@ public class FacebookPageService
               FromId = post["from"]["id"]?.ToString(),
               FromName = post["from"]["name"]?.ToString(),
               Message = post["message"]?.ToString(),
-              FullPicture = post["full_picture"]?.ToString(),
+              FullPictureUrl = post["full_picture"]?.ToString(),
+              CreatedTime = (ulong.TryParse(post["created_time"]?.ToString(), out var unixCreatedTime)
+                ? UnixTimestampToDateTime(unixCreatedTime) : DateTime.Parse(post["created_time"]?.ToString())).ToUniversalTime(),
+              UpdatedTime = (ulong.TryParse(post["updated_time"]?.ToString(), out var unixUpdatedTime)
+                ? UnixTimestampToDateTime(unixUpdatedTime) : DateTime.Parse(post["updated_time"]?.ToString())).ToUniversalTime(),
             };
 
             Console.WriteLine("facebook's response (found page post only): " + JsonConvert.SerializeObject(pagePost, Formatting.Indented));
@@ -117,8 +125,16 @@ public class FacebookPageService
       }
     }
   }
+  
+  public static DateTime UnixTimestampToDateTime( ulong unixTimeStamp )
+  {
+    // Unix timestamp is seconds past epoch
+    DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+    dateTime = dateTime.AddSeconds( unixTimeStamp ); //.ToLocalTime();
+    return dateTime;
+  }
 
-  public static async Task<(string facebookMessage, string facebookPictureUrl)> GetLatestFacebookPostAsync()
+  public static async Task<FacebookPagePost> GetLatestFacebookPostAsync()
   {
     // get user access token
     var userAccessToken = await FacebookUserAccessTokenService.GetUserAccessToken();
@@ -135,7 +151,7 @@ public class FacebookPageService
 
     // get the most recent post
     var post = await pageService.GetMostRecentPostOnPage(pageAccount.PageId, pageAccount.PageAccessToken);
-    return (post.Message, post.FullPicture);
+    return post;
   }
 
   private static void HandleInvalidAccessTokenResult(string result)
