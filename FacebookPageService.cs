@@ -39,7 +39,7 @@ public class FacebookPageService
   {
     Console.WriteLine("Asking facebook for pages the user is admin of");
     using var client = new HttpClient();
-    client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
+    client.BaseAddress = new Uri("https://graph.facebook.com/v25.0/");
     using HttpResponseMessage response = await client.GetAsync($"{userId}/accounts?access_token={_userAccessToken}");
     string result = await response.Content.ReadAsStringAsync();
     if (response.IsSuccessStatusCode)
@@ -90,7 +90,7 @@ public class FacebookPageService
   {
     Console.WriteLine("Asking facebook for most recent post on page");
     using var client = new HttpClient();
-    client.BaseAddress = new Uri("https://graph.facebook.com/v18.0/");
+    client.BaseAddress = new Uri("https://graph.facebook.com/v25.0/");
 
     // TODO: perform paginated requests until a satisfactory post is found
     using HttpResponseMessage response = await client.GetAsync(

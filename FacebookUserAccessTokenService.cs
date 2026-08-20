@@ -15,8 +15,14 @@ public static class FacebookUserAccessTokenService
     public string UserAccessToken;
   }
 
+  private static string _userAccessTokenFromFile = null;
+
   public static async Task<string> GetUserAccessToken()
   {
+    if (_userAccessTokenFromFile != null)
+    {
+      return _userAccessTokenFromFile;
+    }
     if (File.Exists(Constants.FacebookUserAccessTokenFileName))
     {
       Console.WriteLine("Loading user access token from file " + Constants.FacebookUserAccessTokenFileName);
@@ -29,7 +35,8 @@ public static class FacebookUserAccessTokenService
         );
         if (json.FacebookAppId == Constants.FacebookAppId)
         {
-          return json.UserAccessToken;
+          _userAccessTokenFromFile = json.UserAccessToken;
+          return _userAccessTokenFromFile;
         }
         else
         {
@@ -45,6 +52,7 @@ public static class FacebookUserAccessTokenService
 
       // if we made it this far, it must have been bad
       File.Delete(Constants.FacebookUserAccessTokenFileName);
+      _userAccessTokenFromFile = null;
     }
 
     using var redirectListener = new FacebookLoginRedirectListener();
@@ -52,11 +60,11 @@ public static class FacebookUserAccessTokenService
     var loginNookie = Guid.NewGuid().ToString();
     var loginRedirect = $"https://localhost:{redirectListener.ListeningPort}/login_success";
     var loginUrl =
-      $"https://www.facebook.com/v18.0/dialog/oauth?"
+      $"https://www.facebook.com/v25.0/dialog/oauth?"
       + $"client_id={Constants.FacebookAppId}&"
       + $"redirect_uri={loginRedirect}&"
       + $"state={loginNookie}&"
-      + $"scope=pages_read_engagement,pages_read_user_content,pages_show_list&"
+      + $"scope=public_profile,pages_read_engagement,pages_read_user_content,pages_show_list,business_management&"
       + $"response_type=code";
 
     int loginDenied = 0;
@@ -85,7 +93,7 @@ public static class FacebookUserAccessTokenService
             {
               var response = client
                 .GetAsync(
-                  "https://graph.facebook.com/v18.0/oauth/access_token?"
+                  "https://graph.facebook.com/v25.0/oauth/access_token?"
                     + $"client_id={Constants.FacebookAppId}&"
                     + $"redirect_uri={loginRedirect}&"
                     + $"client_secret={Constants.FacebookAppSecret}&"
@@ -112,6 +120,7 @@ public static class FacebookUserAccessTokenService
                   var o = new CachedToken { FacebookAppId = Constants.FacebookAppId, UserAccessToken = token };
                   var t = JsonConvert.SerializeObject(o, Formatting.Indented);
                   File.WriteAllText(Constants.FacebookUserAccessTokenFileName, t);
+                  _userAccessTokenFromFile = token;
                   userAccessToken.SetResult(token);
                 }
                 else
@@ -180,5 +189,6 @@ public static class FacebookUserAccessTokenService
       Console.WriteLine("Deleting user access token from file " + Constants.FacebookUserAccessTokenFileName);
       File.Delete(Constants.FacebookUserAccessTokenFileName);
     }
+    _userAccessTokenFromFile = null;
   }
 }
